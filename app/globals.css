@@ -191,21 +191,57 @@
   --deck-hairline: rgb(255 255 255 / 0.07);
   --deck-hairline-strong: rgb(255 255 255 / 0.13);
 
-  /* --- Atmosphere knobs — tune the whole mood from these four ------------ */
+  /* --- Atmosphere knobs — tune the whole mood from these seven -----------
+     None of them affect layout, and each is safe to change on its own.
+     Set any one to 0 to switch that layer off completely.                 */
   --deck-grid-size: 56px; /* blueprint grid pitch                            */
   --deck-grid-rule: rgb(255 255 255 / 0.035); /* blueprint grid line colour  */
-  --deck-glow-strength: 0.16; /* lime bloom intensity, 0 disables it         */
+  /* Lime bloom on the brand panel. Kept below the horse mark and the chart
+     horizon on purpose — three layers now share that bottom-left corner, and
+     the bloom is the one that should give way. */
+  --deck-glow-strength: 0.13;
   --deck-grain-opacity: 0.045; /* film grain over everything                 */
+  --deck-spot-strength: 0.11; /* ambient light behind the sign-in card       */
+  --deck-vignette-strength: 0.5; /* corner darkening on the auth column      */
+  --deck-mark-opacity: 0.08; /* the oversized horse watermark                */
+
+  /* Mask shaping the blueprint grid. It is a variable because the brand panel
+     is a tall column on desktop but a short, wide strip on mobile, and one
+     mask cannot flatter both. The desktop value is set at lg below. */
+  --deck-grid-mask: linear-gradient(to bottom, rgb(0 0 0 / 0.8), transparent 90%);
+}
+
+@media (min-width: 64rem) {
+  :root {
+    /* Desktop: pool the ruling into the bottom-left corner under the horse
+       mark, and let it fall away before it reaches the headline. */
+    --deck-grid-mask: radial-gradient(115% 90% at 10% 100%, #000 0%, transparent 72%);
+  }
 }
 
 /* ==========================================================================
    ATMOSPHERE UTILITIES
-   Each one paints into a ::before/::after so it never affects layout.
-   The element they are applied to must be position:relative.
+
+   SLOT MAP — read this before adding another atmosphere layer.
+
+   Each utility owns exactly ONE painting slot on the element it is applied to.
+   Two utilities that share a slot silently overwrite each other, so keep this
+   table true when you add to it:
+
+     .deck-grid      ::before
+     .deck-grain     ::after
+     .deck-glow      the element's own background-image   \ mutually exclusive
+     .deck-spot      the element's own background-image   / on one element
+     .deck-vignette  the element's own inset box-shadow
+
+   None of them affect layout. The two pseudo-element layers need the host to
+   be position:relative; the other three work anywhere. Because .deck-glow and
+   .deck-spot paint into background-IMAGE, they compose with a Tailwind
+   background-COLOUR class (bg-deck-void, bg-deck-panel) instead of fighting it
+   — but do not also put a bg-[linear-gradient(...)] on the same element.
    ========================================================================== */
 
-/* Fine blueprint ruling. Fades out toward the top-right so it never competes
-   with the headline. */
+/* Fine blueprint ruling, shaped by --deck-grid-mask above. */
 .deck-grid::before {
   content: "";
   position: absolute;
@@ -215,17 +251,15 @@
     linear-gradient(to right, var(--deck-grid-rule) 1px, transparent 1px),
     linear-gradient(to bottom, var(--deck-grid-rule) 1px, transparent 1px);
   background-size: var(--deck-grid-size) var(--deck-grid-size);
-  -webkit-mask-image: radial-gradient(115% 90% at 10% 100%, #000 0%, transparent 72%);
-  mask-image: radial-gradient(115% 90% at 10% 100%, #000 0%, transparent 72%);
+  -webkit-mask-image: var(--deck-grid-mask);
+  mask-image: var(--deck-grid-mask);
 }
 
-/* Lime bloom rising from the bottom-left corner, beneath the horse mark. */
-.deck-glow::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
+/* Lime bloom rising from the bottom-left corner, beneath the horse mark, plus
+   a cooler counter-light in the top-right so the panel is lit from two
+   directions rather than one. */
+.deck-glow {
+  background-image:
     radial-gradient(
       58% 50% at 8% 92%,
       rgb(186 252 12 / var(--deck-glow-strength)),
@@ -238,6 +272,30 @@
     );
 }
 
+/* Ambient light behind the sign-in card, so the card reads as lifted off a lit
+   surface rather than pasted onto a flat one. Two stacked radials: a faint
+   lime cast, and a neutral lift that does most of the separating. */
+.deck-spot {
+  background-image:
+    radial-gradient(
+      62% 46% at 46% 44%,
+      rgb(186 252 12 / calc(var(--deck-spot-strength) * 0.5)),
+      transparent 70%
+    ),
+    radial-gradient(
+      88% 66% at 46% 48%,
+      rgb(255 255 255 / calc(var(--deck-spot-strength) * 0.42)),
+      transparent 72%
+    );
+}
+
+/* Corner darkening, which is what stops the ambient light above from reading
+   as a flat grey wash. An inset shadow rather than an overlay element, so it
+   costs no pseudo-element and can never intercept a pointer. */
+.deck-vignette {
+  box-shadow: inset 0 0 10rem 1.5rem rgb(0 0 0 / var(--deck-vignette-strength));
+}
+
 /* Film grain. Kills the flat-CSS-gradient look on large dark areas. */
 .deck-grain::after {
   content: "";
@@ -246,6 +304,25 @@
   pointer-events: none;
   opacity: var(--deck-grain-opacity);
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ==========================================================================
+   ELEVATION
+   Named shadow recipes for the raised surfaces, so the long arbitrary-value
+   strings live here rather than being copy-pasted around the JSX.
+   ========================================================================== */
+
+/* The sign-in card. Four stacked effects, outermost first:
+     1. a hard 1px black ring that separates it from the panel at any zoom
+     2. a wide, very soft cast shadow — the card floating over the surface
+     3. a tighter contact shadow so it does not look like it is hovering
+     4. an inner top highlight, the same light source as the lit top edge   */
+.deck-lift {
+  box-shadow:
+    0 0 0 1px rgb(0 0 0 / 0.55),
+    0 44px 96px -40px rgb(0 0 0 / 0.95),
+    0 12px 28px -18px rgb(0 0 0 / 0.7),
+    inset 0 1px 0 0 rgb(255 255 255 / 0.055);
 }
 
 /* ==========================================================================
@@ -383,7 +460,7 @@
   -webkit-box-shadow: 0 0 0 1000px #14161300 inset;
   box-shadow: 0 0 0 1000px #14161300 inset;
   transition: background-color 9999s ease-in-out 0s;
-  caret-color: var(--ink);
+  caret-color: var(--brand-lime);
 }
 
 /* Respect the motion preference: show the final state, skip the show. */
@@ -412,22 +489,13 @@ html:has(main[data-surface="deck"]) {
   color-scheme: dark;
 }
 
-/* The blueprint ruling is a large-screen flourish. Below lg the brand panel is
-   only a few hundred pixels tall, and the radial mask ends inside the visible
-   area as a hard-edged rectangle — so the grid is simply not drawn there. */
-.deck-grid::before {
-  display: none;
-}
+/* ==========================================================================
+   CHART WATERMARK
+   A watermark breathing between two opacities while it recalculates. Both
+   bounds and the cycle length come from area.motion in config/login.ts,
+   passed in as inline custom properties.
+   ========================================================================== */
 
-@media (min-width: 64rem) {
-  .deck-grid::before {
-    display: block;
-  }
-}
-
-/* A chart watermark breathing between two opacities while it recalculates.
-   Both bounds and the cycle length come from chart.motion in config/login.ts,
-   passed in as inline custom properties. */
 @keyframes deck-breathe {
   0%,
   100% {
@@ -441,6 +509,11 @@ html:has(main[data-surface="deck"]) {
 .deck-breathe {
   opacity: var(--wm-fade-from, 0.078);
   animation: deck-breathe var(--wm-fade-duration, 8400ms) ease-in-out infinite;
+  /* The breathing above cycles on its own, but the interactive watermark also
+     ramps up when the pointer arrives. It does that by overriding opacity
+     inline (which beats the animation), so all this needs is something to
+     interpolate the change. */
+  transition: opacity var(--wm-reveal-ms, 420ms) ease;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -449,29 +522,46 @@ html:has(main[data-surface="deck"]) {
        the animation never leaves the layer harder to see than intended. */
     opacity: var(--wm-fade-to, 0.13);
     animation: none;
-  }
-}
-
-/* Watermarks fade between their two bounds via the animation above, but the
-   interactive one also needs to ramp up when the pointer arrives. It does that
-   by overriding opacity inline (which beats the animation), so all this layer
-   needs is something to interpolate the change. */
-.deck-breathe {
-  transition: opacity var(--wm-reveal-ms, 420ms) ease;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .deck-breathe {
-    /* The reveal itself still happens — it is an affordance, not decoration —
-       it just arrives immediately instead of fading in. */
+    /* The pointer reveal itself still happens — it is an affordance, not
+       decoration — it just arrives immediately instead of fading in. */
     transition: none;
   }
 }
 
-/* Backstop for the same problem: nothing inside a decorative watermark should
-   ever paint a focus ring, including if a library moves focus there
-   programmatically rather than through a click. */
+/* Backstop: nothing inside a decorative watermark should ever paint a focus
+   ring, including if a library moves focus there programmatically rather than
+   through a click. */
 .deck-breathe :focus,
 .deck-breathe :focus-visible {
   outline: none;
+}
+
+/* ==========================================================================
+   BRAND MARK WATERMARK
+   The oversized horse mark behind the brand panel.
+
+   A hard-edged PNG at low opacity still reads as a flat grey silhouette with a
+   visible outline, which is what makes a watermark look pasted on. Masking it
+   so it dissolves into the panel — rather than simply ending — is what turns
+   it into part of the surface. Opacity comes from the --deck-mark-opacity knob
+   with the other atmosphere settings; the two geometry classes below exist
+   because the desktop column and the mobile strip need different framing.
+   ========================================================================== */
+
+.deck-mark {
+  opacity: var(--deck-mark-opacity);
+}
+
+/* Desktop: bleeding off the bottom-left corner, dissolving upward before it
+   can reach the headline. */
+.deck-mark-corner {
+  -webkit-mask-image: radial-gradient(62% 58% at 40% 66%, #000 0%, #000 32%, transparent 80%);
+  mask-image: radial-gradient(62% 58% at 40% 66%, #000 0%, #000 32%, transparent 80%);
+}
+
+/* Mobile and tablet: the panel is a short, wide strip, so the mark bleeds off
+   the right edge instead — away from the headline, which starts at the left. */
+.deck-mark-edge {
+  -webkit-mask-image: radial-gradient(74% 78% at 72% 46%, #000 0%, #000 20%, transparent 76%);
+  mask-image: radial-gradient(74% 78% at 72% 46%, #000 0%, #000 20%, transparent 76%);
 }

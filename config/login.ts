@@ -32,10 +32,16 @@ export interface LoginFeatureFlags {
   /** Small "no account? contact your admin" line under the submit button. */
   supportFootnote: boolean;
   /**
-   * The two background layers on the brand panel. Independent of each other,
-   * both lg and up.
+   * The two background layers on the brand panel. Independent of each other —
+   * either can be switched off without touching the other.
+   *
+   * Oversized horse mark behind the brand panel. It has two placements, one
+   * for the desktop column and one for the short mobile strip; this flag
+   * removes both. How heavy it sits is --deck-mark-opacity in globals.css.
    */
   logoWatermark: boolean;
+  /** Live area chart along the bottom of the brand panel. Large screens only,
+   *  because the shape needs the width to read as a horizon. */
   areaWatermark: boolean;
 }
 
@@ -197,10 +203,10 @@ export interface LoginConfig {
 
 export const loginConfig: LoginConfig = {
   features: {
-    googleSignIn: true,
+    googleSignIn: false,
     rememberMe: true,
     forgotPassword: true,
-    supportFootnote: true,
+    supportFootnote: false,
     logoWatermark: false,
     areaWatermark: true,
   },

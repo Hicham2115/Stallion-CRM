@@ -27,7 +27,7 @@ const { content, features, routes, validation } = loginConfig;
    -------------------------------------------------------------------------- */
 
 const inputBase =
-  "deck-input h-12 w-full rounded-xl border border-hairline bg-white/[0.02] text-[0.9375rem] text-ink outline-none transition duration-200 placeholder:text-ink-muted hover:border-hairline-strong focus:border-brand/55 focus:bg-white/[0.04] focus:ring-4 focus:ring-brand/10";
+  "deck-input h-12 w-full rounded-xl border border-hairline bg-white/[0.02] text-[0.9375rem] text-ink caret-brand shadow-[inset_0_1px_0_0_rgb(255_255_255/0.035)] outline-none transition duration-200 placeholder:text-ink-muted hover:border-hairline-strong hover:bg-white/[0.035] focus:border-brand/55 focus:bg-white/[0.05] focus:shadow-[inset_0_1px_0_0_rgb(255_255_255/0.07),0_10px_30px_-16px_rgb(186_252_12/0.55)] focus:ring-4 focus:ring-brand/10";
 
 const inputInvalid =
   "border-red-500/45 hover:border-red-500/60 focus:border-red-500/70 focus:ring-red-500/10";
@@ -173,13 +173,19 @@ export function LoginForm() {
       {/* The card                                                            */}
       {/* ================================================================== */}
       <div
-        className="reveal-card relative overflow-hidden rounded-2xl border border-hairline bg-deck-card/85 p-7 shadow-[0_30px_80px_-32px_rgb(0_0_0/0.95)] backdrop-blur-xl sm:p-9"
+        className="reveal-card deck-lift relative overflow-hidden rounded-2xl border border-hairline bg-deck-card/85 p-7 backdrop-blur-xl sm:p-9"
         style={delay(220)}
       >
         {/* Lit top edge — reads as a light source above the card. */}
         <div
           aria-hidden
           className="pointer-events-none absolute inset-x-8 top-0 h-px bg-[linear-gradient(90deg,transparent,rgb(186_252_12/0.45),transparent)]"
+        />
+
+        {/* The light from that edge, falling into the card. */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-44 bg-[radial-gradient(70%_100%_at_50%_0%,rgb(186_252_12/0.05),transparent_72%)]"
         />
 
         <header>
@@ -204,7 +210,7 @@ export function LoginForm() {
               type="button"
               onClick={handleGoogle}
               disabled={busy}
-              className="mt-7 flex h-12 w-full items-center justify-center gap-2.5 rounded-xl border border-hairline bg-white/[0.03] text-[0.9375rem] font-medium text-ink transition duration-200 hover:border-hairline-strong hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60 focus-visible:ring-offset-2 focus-visible:ring-offset-deck-card disabled:cursor-not-allowed disabled:opacity-55"
+              className="mt-7 flex h-12 w-full items-center justify-center gap-2.5 rounded-xl border border-hairline bg-white/[0.03] text-[0.9375rem] font-medium text-ink shadow-[inset_0_1px_0_0_rgb(255_255_255/0.045)] transition duration-200 hover:-translate-y-px hover:border-hairline-strong hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60 focus-visible:ring-offset-2 focus-visible:ring-offset-deck-card active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:translate-y-0"
             >
               {pending === "google" ? (
                 <LoaderCircle aria-hidden className="deck-spin size-4" />
@@ -421,7 +427,7 @@ export function LoginForm() {
         <span>
           &copy; {new Date().getFullYear()} {content.legal}
         </span>
-        <Link href={routes.privacy} className="transition-colors hover:text-ink-muted">
+        <Link href={routes.privacy} className="transition-colors hover:text-brand">
           {content.privacyLabel}
         </Link>
       </div>

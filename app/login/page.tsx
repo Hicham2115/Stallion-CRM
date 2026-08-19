@@ -27,7 +27,12 @@ export default function LoginPage() {
       <div className="grid min-h-dvh grid-cols-1 grid-rows-[auto_1fr] lg:grid-cols-[1.08fr_0.92fr] lg:grid-rows-1">
         <BrandPanel />
 
-        <section className="deck-grain relative flex items-center justify-center overflow-hidden bg-deck-panel px-6 pt-7 pb-12 sm:px-10 sm:pt-10 lg:px-14 lg:py-12">
+        {/* deck-spot lights the surface behind the card and deck-vignette
+            darkens the edges around it. They are a pair: the spot alone just
+            raises the whole column a shade, and it is the falloff that makes
+            the light read as light. Both are tunable from --deck-spot-strength
+            and --deck-vignette-strength in app/globals.css. */}
+        <section className="deck-spot deck-vignette deck-grain relative flex items-center justify-center overflow-hidden bg-deck-panel px-6 pt-7 pb-12 sm:px-10 sm:pt-10 lg:px-14 lg:py-12">
           {/* The seam: a hairline that warms to lime at eye level. */}
           <div
             aria-hidden
