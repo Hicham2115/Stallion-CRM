@@ -1,29 +1,11 @@
 import { AreaWatermark } from "@/components/auth/area-watermark";
 import { StallionLogo } from "@/components/brand/stallion-logo";
+import { CornerTick } from "@/components/deck/corner-tick";
+import { StatusDot } from "@/components/deck/status-dot";
+import { TickRuler } from "@/components/deck/tick-ruler";
 import { loginConfig } from "@/config/login";
 
 const { brand, content, features } = loginConfig;
-
-/**
- * A crosshair registration mark, like the corner ticks on a print plate.
- * Purely decorative — it gives the panel its "instrument housing" feel.
- */
-function CornerTick({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 20 20"
-      aria-hidden
-      className={`absolute size-3.5 text-ink-faint ${className ?? ""}`}
-    >
-      <path
-        d="M10 0v20M0 10h20"
-        stroke="currentColor"
-        strokeWidth="1"
-        vectorEffect="non-scaling-stroke"
-      />
-    </svg>
-  );
-}
 
 /**
  * The left-hand "deck": the brand half of the split screen.
@@ -112,7 +94,7 @@ export function BrandPanel() {
           className="reveal mb-6 inline-flex items-center gap-2.5 rounded-full border border-brand/25 bg-brand/[0.07] px-3.5 py-1.5 font-mono text-[0.625rem] uppercase tracking-[0.2em] text-brand shadow-[0_0_26px_-8px_rgb(186_252_12/0.45)] backdrop-blur-sm"
           style={{ "--reveal-delay": "160ms" } as React.CSSProperties}
         >
-          <span className="deck-dot size-1.5 rounded-full bg-brand" aria-hidden />
+          <StatusDot pulse />
           {content.eyebrow}
         </p>
 
@@ -179,13 +161,11 @@ export function BrandPanel() {
         className="reveal relative z-10 hidden lg:block"
         style={{ "--reveal-delay": "440ms" } as React.CSSProperties}
       >
-        {/* Tick ruler — a hairline with measurement marks along it. */}
-        <div
-          aria-hidden
-          className="mb-5 h-2.5 w-full border-t border-hairline bg-[repeating-linear-gradient(to_right,var(--ink-faint)_0_1px,transparent_1px_28px)] opacity-40 [mask-image:linear-gradient(to_right,#000,transparent_78%)]"
-        />
+        {/* Tick ruler — a hairline with measurement marks along it. Shared with
+            the console's KPI cluster via components/deck/tick-ruler.tsx. */}
+        <TickRuler className="mb-5" fade="78%" />
         <p className="flex items-center gap-2.5 font-mono text-[0.6875rem] uppercase tracking-[0.16em] text-ink-muted">
-          <span className="deck-dot size-1.5 rounded-full bg-brand" aria-hidden />
+          <StatusDot pulse />
           {content.statusLabel}
         </p>
       </footer>

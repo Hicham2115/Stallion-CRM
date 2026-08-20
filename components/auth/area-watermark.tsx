@@ -89,7 +89,7 @@ function HorizonReadout({ active, payload }: Partial<TooltipContentProps>) {
 
   return (
     <div className="rounded-lg border border-hairline bg-deck-card/95 px-3 py-2 shadow-[0_18px_44px_-18px_rgb(0_0_0/0.9)] backdrop-blur-md">
-      <p className="font-mono text-[0.5625rem] uppercase tracking-[0.18em] text-ink-muted">
+      <p className="font-mono text-[0.625rem] uppercase tracking-[0.18em] text-ink-muted">
         {area.readoutLabel}
       </p>
       <p className="mt-1 font-mono text-sm font-medium tabular-nums text-brand">

@@ -1,3 +1,5 @@
+import { brandConfig, type BrandConfig } from "@/config/brand";
+
 /**
  * ============================================================================
  *  LOGIN SCREEN CONFIGURATION
@@ -32,6 +34,22 @@ export interface LoginFeatureFlags {
   /** Small "no account? contact your admin" line under the submit button. */
   supportFootnote: boolean;
   /**
+   * Preview build: let people through the door while auth is a stub.
+   *
+   * It only does anything while `authBackendConnected` in lib/auth.ts is
+   * false, so it turns ITSELF off the day the backend lands — there is no
+   * second flag to remember, and no way for the screen to claim it is
+   * connected when it is not.
+   *
+   * While it is active the card carries a standing warning chip and the submit
+   * becomes "Continue to console", which goes straight to routes.afterSignIn.
+   * The alternative is what this replaced: the only outcome the screen could
+   * produce was a failure, on the one page every viewer sees first.
+   *
+   * Set to false if you would rather the preview refuse entry entirely.
+   */
+  previewFallback: boolean;
+  /**
    * The two background layers on the brand panel. Independent of each other —
    * either can be switched off without touching the other.
    *
@@ -49,7 +67,13 @@ export interface LoginFeatureFlags {
 export interface LoginRoutes {
   /** Target of the "Forgot password?" link. Build this route when you need it. */
   forgotPassword: string;
-  /** Where a successful sign-in sends the user. */
+  /**
+   * Where a successful sign-in sends the user.
+   *
+   * TODO(backend): this is one fixed route, but each role has its own home.
+   * Once the session carries a role, look the landing route up in
+   * `navigation.roleHome` (config/navigation.ts) instead of using this.
+   */
   afterSignIn: string;
   /** Footer privacy link. */
   privacy: string;
@@ -66,13 +90,12 @@ export interface LoginValidation {
   emailPattern: RegExp;
 }
 
-/** A logo file in /public plus its intrinsic size, for next/image. */
-export interface LoginBrandAsset {
-  src: string;
-  width: number;
-  height: number;
-  alt: string;
-}
+/**
+ * Brand artwork moved to config/brand.ts, because the console sidebar needs the
+ * logo too and should not import the login config to get it. Re-exported here
+ * so anything already importing it from this file keeps working.
+ */
+export type { BrandAsset as LoginBrandAsset } from "@/config/brand";
 
 /**
  * How a chart watermark keeps moving. Both loops run forever, not once on load.
@@ -149,14 +172,8 @@ export interface LoginConfig {
   routes: LoginRoutes;
   validation: LoginValidation;
   area: LoginAreaConfig;
-  brand: {
-    /** Full horizontal lockup: horse mark + "stallion advertising". */
-    lockup: LoginBrandAsset;
-    /** Horse mark on its own, used as the oversized background watermark. */
-    mark: LoginBrandAsset;
-    /** Product name shown next to the lockup in the panel header. */
-    productName: string;
-  };
+  /** Shared agency artwork + product name. Edit config/brand.ts, not here. */
+  brand: BrandConfig;
   content: {
     /** ---- Left brand panel ---- */
     eyebrow: string;
@@ -184,6 +201,15 @@ export interface LoginConfig {
     rememberLabel: string;
     submitLabel: string;
     submitPendingLabel: string;
+    /** ---- Preview build (features.previewFallback) ---- */
+    /** Standing chip on the card. Keep it short — it sits beside the kicker. */
+    previewChipLabel: string;
+    /** Tooltip on the chip. Say what is and is not real. */
+    previewChipTooltip: string;
+    /** Replaces submitLabel while the preview bypass is active. */
+    previewSubmitLabel: string;
+    /** One line under the submit, explaining why no credentials are needed. */
+    previewHint: string;
     supportFootnote: string;
     supportLinkLabel: string;
     /** ---- Footer ---- */
@@ -207,13 +233,14 @@ export const loginConfig: LoginConfig = {
     rememberMe: true,
     forgotPassword: true,
     supportFootnote: false,
+    previewFallback: true,
     logoWatermark: false,
     areaWatermark: true,
   },
 
   routes: {
     forgotPassword: "/forgot-password",
-    afterSignIn: "/dashboard",
+    afterSignIn: "/admin",
     privacy: "/privacy",
   },
 
@@ -247,21 +274,7 @@ export const loginConfig: LoginConfig = {
     },
   },
 
-  brand: {
-    lockup: {
-      src: "/brand/stallion-logo.png",
-      width: 1255,
-      height: 485,
-      alt: "Stallion Advertising",
-    },
-    mark: {
-      src: "/brand/stallion-mark.png",
-      width: 286,
-      height: 485,
-      alt: "",
-    },
-    productName: "CRM",
-  },
+  brand: brandConfig,
 
   content: {
     eyebrow: "Agency operations",
@@ -287,6 +300,12 @@ export const loginConfig: LoginConfig = {
     rememberLabel: "Keep me signed in",
     submitLabel: "Log in",
     submitPendingLabel: "Verifying",
+
+    previewChipLabel: "Preview build",
+    previewChipTooltip:
+      "Authentication is not connected yet. Nothing is checked and no session is created — this door opens for anyone.",
+    previewSubmitLabel: "Continue to console",
+    previewHint: "No credentials needed while auth is disconnected.",
     supportFootnote: "No account yet?",
     supportLinkLabel: "Ask your administrator",
 

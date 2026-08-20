@@ -12,38 +12,57 @@ import {
   LoaderCircle,
   Lock,
   Mail,
+  TriangleAlert,
 } from "lucide-react";
 
+import {
+  fieldAlert,
+  fieldBase,
+  fieldErrorText,
+  fieldIcon,
+  fieldIconInvalid,
+  fieldInvalid,
+  fieldLabel,
+  fieldWarningText,
+} from "@/components/deck/field";
+import { WarningChip } from "@/components/deck/warning-chip";
 import { loginConfig } from "@/config/login";
-import { signInWithGoogle, signInWithPassword } from "@/lib/auth";
+import {
+  authBackendConnected,
+  signInWithGoogle,
+  signInWithPassword,
+} from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
 const { content, features, routes, validation } = loginConfig;
 
+/**
+ * Whether this build lets people through without checking anything.
+ *
+ * Both halves have to be true: the flag says a preview bypass is ALLOWED, and
+ * `authBackendConnected` says whether one is NEEDED. Wiring the backend flips
+ * the second on its own, so the bypass disappears without anyone editing
+ * config — which is the only version of this that cannot be left on by
+ * accident in production.
+ */
+const previewMode = features.previewFallback && !authBackendConnected;
+
 /* --------------------------------------------------------------------------
-   Shared styling.
-   Restyle every input / label / error in one place by editing these four
-   constants rather than hunting through the JSX below.
+   Field styling comes from components/deck/field.ts, shared with the console
+   dialogs. Only what is genuinely different about THIS surface lives here.
    -------------------------------------------------------------------------- */
 
-const inputBase =
-  "deck-input h-12 w-full rounded-xl border border-hairline bg-white/[0.02] text-[0.9375rem] text-ink caret-brand shadow-[inset_0_1px_0_0_rgb(255_255_255/0.035)] outline-none transition duration-200 placeholder:text-ink-muted hover:border-hairline-strong hover:bg-white/[0.035] focus:border-brand/55 focus:bg-white/[0.05] focus:shadow-[inset_0_1px_0_0_rgb(255_255_255/0.07),0_10px_30px_-16px_rgb(186_252_12/0.55)] focus:ring-4 focus:ring-brand/10";
+/**
+ * The login card runs 3rem fields with a lit top edge and a lime bloom on
+ * focus. The console dialogs run 2.75rem fields with neither: this is a lobby
+ * control seen once, those are working controls seen all day.
+ */
+const inputBase = cn(
+  fieldBase,
+  "h-12 shadow-[inset_0_1px_0_0_rgb(255_255_255/0.035)] focus:shadow-[inset_0_1px_0_0_rgb(255_255_255/0.07),0_10px_30px_-16px_rgb(186_252_12/0.55)]",
+);
 
-const inputInvalid =
-  "border-red-500/45 hover:border-red-500/60 focus:border-red-500/70 focus:ring-red-500/10";
-
-const labelClass =
-  "font-mono text-[0.6875rem] uppercase tracking-[0.14em] text-ink-muted";
-
-const errorTextClass = "mt-2 text-[0.8125rem] text-red-300/90";
-
-/** The icon sitting inside the left edge of each input. */
-const fieldIcon =
-  "pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-ink-muted transition-colors group-focus-within:text-brand";
-
-/** An invalid field keeps its icon red, so the colour never contradicts the
-    error message sitting underneath it. */
-const fieldIconInvalid = "text-red-400/80 group-focus-within:text-red-400";
+const errorText = cn("mt-2", fieldErrorText);
 
 /** Staggered page-load choreography — see .reveal in app/globals.css. */
 const delay = (ms: number) => ({ "--reveal-delay": `${ms}ms` }) as CSSProperties;
@@ -104,6 +123,18 @@ export function LoginForm() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setFormError(null);
+
+    // Preview build: nothing to check, so nothing is checked. Validation is
+    // skipped deliberately rather than passed — gating entry on a well-formed
+    // email would be theatre when the email is never read by anything.
+    //
+    // The pending state is still shown: it is part of the design being
+    // reviewed, and a button that changes nothing on click reads as broken.
+    if (previewMode) {
+      setPending("password");
+      router.push(routes.afterSignIn);
+      return;
+    }
 
     const errors = validate();
     setFieldErrors(errors);
@@ -189,9 +220,22 @@ export function LoginForm() {
         />
 
         <header>
-          <p className="font-mono text-[0.625rem] uppercase tracking-[0.2em] text-brand">
-            {content.cardKicker}
-          </p>
+          {/* Kicker left, standing status right — the same header shape the
+              console panels use. The chip is a condition, not an error, so it
+              lives up here rather than in the alert slot below. */}
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="font-mono text-[0.625rem] uppercase tracking-[0.2em] text-brand">
+              {content.cardKicker}
+            </p>
+
+            {previewMode && (
+              <WarningChip
+                icon={TriangleAlert}
+                label={content.previewChipLabel}
+                title={content.previewChipTooltip}
+              />
+            )}
+          </div>
           <h2 className="mt-3 font-display text-[1.75rem] font-semibold tracking-[-0.025em] text-ink">
             {content.title}
           </h2>
@@ -238,7 +282,7 @@ export function LoginForm() {
             <div
               role="alert"
               className={cn(
-                "flex items-start gap-2.5 rounded-xl border border-red-500/25 bg-red-500/[0.07] px-3.5 py-3 text-[0.8125rem] leading-relaxed text-red-300",
+                fieldAlert,
                 features.googleSignIn ? "mb-6" : "mt-7",
               )}
             >
@@ -257,7 +301,7 @@ export function LoginForm() {
           className={cn("space-y-5", !features.googleSignIn && !formError && "mt-7")}
         >
           <div>
-            <label htmlFor="email" className={labelClass}>
+            <label htmlFor="email" className={fieldLabel}>
               {content.emailLabel}
             </label>
             <div className="group relative mt-2.5">
@@ -276,11 +320,11 @@ export function LoginForm() {
                 onChange={(event) => setEmail(event.target.value)}
                 aria-invalid={Boolean(fieldErrors.email)}
                 aria-describedby={fieldErrors.email ? "email-error" : undefined}
-                className={cn(inputBase, "pl-11 pr-4", fieldErrors.email && inputInvalid)}
+                className={cn(inputBase, "pl-11 pr-4", fieldErrors.email && fieldInvalid)}
               />
             </div>
             {fieldErrors.email && (
-              <p id="email-error" role="alert" className={errorTextClass}>
+              <p id="email-error" role="alert" className={errorText}>
                 {fieldErrors.email}
               </p>
             )}
@@ -288,7 +332,7 @@ export function LoginForm() {
 
           <div>
             <div className="flex items-baseline justify-between gap-3">
-              <label htmlFor="password" className={labelClass}>
+              <label htmlFor="password" className={fieldLabel}>
                 {content.passwordLabel}
               </label>
               {/* Remove via features.forgotPassword in config/login.ts.
@@ -327,7 +371,7 @@ export function LoginForm() {
                       ? "caps-hint"
                       : undefined
                 }
-                className={cn(inputBase, "pl-11 pr-12", fieldErrors.password && inputInvalid)}
+                className={cn(inputBase, "pl-11 pr-12", fieldErrors.password && fieldInvalid)}
               />
               <button
                 type="button"
@@ -347,12 +391,12 @@ export function LoginForm() {
             </div>
 
             {fieldErrors.password && (
-              <p id="password-error" role="alert" className={errorTextClass}>
+              <p id="password-error" role="alert" className={errorText}>
                 {fieldErrors.password}
               </p>
             )}
             {capsLock && !fieldErrors.password && (
-              <p id="caps-hint" className="mt-2 text-[0.8125rem] text-amber-300/80">
+              <p id="caps-hint" className={cn("mt-2", fieldWarningText)}>
                 {content.capsLockWarning}
               </p>
             )}
@@ -398,7 +442,7 @@ export function LoginForm() {
               </>
             ) : (
               <>
-                {content.submitLabel}
+                {previewMode ? content.previewSubmitLabel : content.submitLabel}
                 <ArrowRight
                   aria-hidden
                   className="size-4 transition-transform duration-200 group-hover:translate-x-0.5"
@@ -406,6 +450,16 @@ export function LoginForm() {
               </>
             )}
           </button>
+
+          {/* Says out loud what the chip implies. The button label alone
+              ("Continue to console") could still read as "sign me in", and a
+              reviewer with no credentials should not have to guess whether the
+              empty fields will stop them. */}
+          {previewMode && (
+            <p className="text-center text-[0.75rem] text-ink-muted">
+              {content.previewHint}
+            </p>
+          )}
         </form>
 
         {/* Remove via features.supportFootnote in config/login.ts. */}
