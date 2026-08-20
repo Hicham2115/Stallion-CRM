@@ -42,3 +42,4 @@ next-env.d.ts
 
 # agent tooling (local workflows, not part of the app)
 .agents/
+.impeccable/

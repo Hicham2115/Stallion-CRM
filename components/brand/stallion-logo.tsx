@@ -1,6 +1,6 @@
 import Image from "next/image";
 
-import { loginConfig } from "@/config/login";
+import { brandConfig } from "@/config/brand";
 import { cn } from "@/lib/utils";
 
 /**
@@ -11,9 +11,9 @@ import { cn } from "@/lib/utils";
  *  - "mark"   — the horse "S" alone, for the oversized background watermark
  *               (decorative, so it is hidden from assistive tech).
  *
- * File paths and intrinsic dimensions live in config/login.ts. If the agency
- * ships new artwork, drop it in /public/brand and update `brand` there —
- * this component does not need to change.
+ * File paths and intrinsic dimensions live in config/brand.ts. If the agency
+ * ships new artwork, drop it in /public/brand and update it there — this
+ * component does not need to change.
  *
  * Always pass a height class (e.g. "h-8"); width stays auto so the aspect
  * ratio is preserved and next/image does not warn.
@@ -28,8 +28,7 @@ export function StallionLogo({
   /** Set on the header lockup so it is not lazy-loaded above the fold. */
   priority?: boolean;
 }) {
-  const asset =
-    variant === "lockup" ? loginConfig.brand.lockup : loginConfig.brand.mark;
+  const asset = variant === "lockup" ? brandConfig.lockup : brandConfig.mark;
 
   return (
     <Image
