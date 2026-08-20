@@ -60,10 +60,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${bricolage.variable} ${instrument.variable} ${jetbrains.variable} h-full antialiased`}
     >
-      <body className="flex min-h-full flex-col">{children}{/* impeccable-live-start */}
-<script src="http://localhost:8400/live.js?token=38ef5fac-af0e-4353-91f1-81c9587fe115"></script>
-{/* impeccable-live-end */}
-</body>
+      <body className="flex min-h-full flex-col">{children}</body>
     </html>
   );
 }

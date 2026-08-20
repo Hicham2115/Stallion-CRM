@@ -237,6 +237,68 @@
 }
 
 /* ==========================================================================
+   THE SHADCN BRIDGE
+   --------------------------------------------------------------------------
+   37 shadcn components are installed, and they paint with the shadcn token
+   set, which ships LIGHT in :root. Rather than overriding colours component
+   by component — which would have to be redone on every `shadcn add` — those
+   tokens are remapped to deck values once, here.
+
+   Consequence: <Button>, <Dialog>, <Table>, <Badge>, <Select> and the rest
+   wear Command Deck automatically, and they stay upgradeable because none of
+   their own files were edited.
+
+   WHY THIS IS DOCUMENT-LEVEL AND NOT SCOPED TO THE CONSOLE.
+   It used to sit inside the [data-surface="console"] block. Every popup that
+   renders through a PORTAL — Select, DropdownMenu, Popover, Tooltip, Command,
+   HoverCard — is attached to <body>, OUTSIDE that element, so it inherited
+   none of the remap and fell back to the light defaults. The result was
+   near-black text on a near-black popup and a white highlight bar on the
+   selected row: the Reports date range and the Add Client source list were
+   both unreadable.
+
+   Portalled content has no surface ancestor, so the only scope that can
+   reach it is the document. This is safe precisely because the product is
+   dark only — there is no light mode for these values to fight with.
+
+   `.dark` is in the selector because the console shell carries
+   className="dark" for the `dark:` variants baked into those components.
+   Custom properties inherit from the nearest ancestor that sets them, so
+   without it the shadcn `.dark` block above would shadow this one inside the
+   console and the console would go back to shadcn grey.
+   ========================================================================== */
+
+:root,
+.dark {
+  --background: var(--deck-void);
+  --foreground: var(--ink);
+  --card: var(--deck-surface, #0e0f0e);
+  --card-foreground: var(--ink);
+  --popover: #141614;
+  --popover-foreground: var(--ink);
+  --primary: var(--brand-lime);
+  --primary-foreground: #0a1000; /* near-black text ON lime                  */
+  --secondary: rgb(255 255 255 / 0.06);
+  --secondary-foreground: var(--ink);
+  --muted: rgb(255 255 255 / 0.045);
+  --muted-foreground: var(--ink-muted);
+  --accent: rgb(255 255 255 / 0.06);
+  --accent-foreground: var(--ink);
+  --destructive: var(--status-critical);
+  --border: var(--deck-hairline);
+  --input: var(--deck-hairline-strong);
+  --ring: var(--brand-lime);
+  --radius: 0.75rem;
+}
+
+/* Portalled popups sit on <body>, which has no deck background of its own, so
+   tell the browser to render their native bits (scrollbars, autofill, form
+   controls) dark rather than light. */
+:root {
+  color-scheme: dark;
+}
+
+/* ==========================================================================
    ATMOSPHERE UTILITIES
 
    SLOT MAP — read this before adding another atmosphere layer.
@@ -661,41 +723,11 @@ html:has(main[data-surface="deck"]) {
      too, and a token that exists on one surface and not the other is how the
      same meaning ends up with two different colours. */
 
-  /* ======================================================================
-     THE SHADCN BRIDGE
-     ----------------------------------------------------------------------
-     37 shadcn components are already installed, but they paint with the
-     shadcn token set, which is LIGHT in :root. Rather than overriding
-     colours component by component — which would have to be redone on every
-     `shadcn add` — the console remaps those tokens to deck values once,
-     right here.
-
-     Consequence: <Button>, <Dialog>, <Table>, <Badge>, <Select> and the rest
-     wear Command Deck automatically, and they stay upgradeable because none
-     of their own files were edited.
-
-     The console root also carries className="dark" so the `dark:` variants
-     baked into those components resolve.
-     ====================================================================== */
-  --background: var(--deck-void);
-  --foreground: var(--ink);
-  --card: var(--deck-surface);
-  --card-foreground: var(--ink);
-  --popover: #141614;
-  --popover-foreground: var(--ink);
-  --primary: var(--brand-lime);
-  --primary-foreground: #0a1000; /* near-black text ON lime                 */
-  --secondary: rgb(255 255 255 / 0.06);
-  --secondary-foreground: var(--ink);
-  --muted: rgb(255 255 255 / 0.045);
-  --muted-foreground: var(--ink-muted);
-  --accent: rgb(255 255 255 / 0.06);
-  --accent-foreground: var(--ink);
-  --destructive: var(--status-critical);
-  --border: var(--deck-hairline);
-  --input: var(--deck-hairline-strong);
-  --ring: var(--brand-lime);
-  --radius: 0.75rem;
+  /* The shadcn bridge used to live here, scoped to the console. It is now a
+     document-level block above — see THE SHADCN BRIDGE. Scoping it to
+     this element was the bug behind unreadable Select and dropdown popups:
+     those render in a PORTAL attached to <body>, outside this subtree, so
+     they never inherited the remap. */
 }
 
 /* Paint the document root so overscroll never flashes white, and tell the
