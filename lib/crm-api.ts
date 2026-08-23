@@ -27,7 +27,16 @@
  */
 
 import { pipelineConfig } from "@/config/pipeline";
-import type { Invoice, Lead, Note, Rep } from "@/lib/types";
+import type {
+  ActivityEvent,
+  Invoice,
+  Lead,
+  Milestone,
+  Note,
+  ProjectPreview,
+  ProjectUpdate,
+  Rep,
+} from "@/lib/types";
 
 /**
  * Flip to `true` once the TODO blocks below actually call your backend.
@@ -87,8 +96,35 @@ export interface NewClientInput {
   company: string;
   phone: string;
   email: string;
-  source: string;
-  note: string;
+  /**
+   * How the lead reached us. A SALES field.
+   *
+   * Optional because the dev workspace can start a project directly, and a
+   * developer has no idea where the client came from. Guessing would be worse
+   * than leaving it blank: a wrong source quietly skews the Reports breakdown,
+   * which is the one screen the agency uses to decide where to spend money.
+   * An empty value renders as "Not recorded" — see components/deck/source-badge.tsx.
+   */
+  source?: string;
+  note?: string;
+  /** One line on what is being built. Shown to the client on their portal. */
+  projectSummary?: string;
+  /**
+   * Who owns the record.
+   *
+   * A rep creating a client passes their OWN id, so it lands in their pipeline
+   * rather than an unassigned pool nobody looks at. The admin dialog leaves it
+   * null and assigns afterwards.
+   */
+  assignedRepId?: string | null;
+  /**
+   * Who is creating the record, for the first note's byline.
+   *
+   * The store fills it from the session — see CrmProvider. It used to be the
+   * literal string "You", which is correct for the person typing and wrong for
+   * everyone else who ever opens the record.
+   */
+  authorName?: string;
 }
 
 /**
@@ -110,21 +146,38 @@ export async function createClient(
       company: input.company,
       phone: input.phone,
       email: input.email,
-      source: input.source,
-      // A record created from the Clients screen is a paying client by
-      // definition — that is what the screen lists.
+      source: input.source ?? "",
+      // A record created from the Clients screen — or from the dev workspace —
+      // is a paying client by definition. That is what both screens list.
       stageId: pipelineConfig.wonStageId,
-      assignedRepId: null,
+      assignedRepId: input.assignedRepId ?? null,
       daysInStage: 0,
       // Created just now, so it falls inside every Reports date range.
       createdDaysAgo: 0,
       notes: input.note
-        ? [{ id: localId("note"), body: input.note, authorName: "You", daysAgo: 0 }]
+        ? [
+            {
+              id: localId("note"),
+              body: input.note,
+              authorName: input.authorName ?? "",
+              daysAgo: 0,
+            },
+          ]
         : [],
       activity: [{ id: localId("act"), label: "Lead created", daysAgo: 0 }],
       milestones: [],
       files: [],
       invoices: [],
+
+      // Client-visible fields, all deliberately empty. A client added from the
+      // Clients screen has no project plan, no preview and nothing live yet,
+      // and the portal has a designed empty state for each — inventing a
+      // placeholder preview link here would put a dead link in front of the
+      // client on day one.
+      projectSummary: input.projectSummary?.trim() ?? "",
+      previews: [],
+      liveUrl: null,
+      updates: [],
     };
 
     return { ok: true, data: lead };
@@ -272,14 +325,30 @@ export async function addNote(
 /** Record a call attempt. Appends activity and bumps the rep's dial count. */
 export async function logCall(
   leadId: string,
-): Promise<ApiResult<{ leadId: string; label: string }>> {
+): Promise<ApiResult<{ leadId: string; event: ActivityEvent }>> {
   if (!CRM_BACKEND_CONNECTED) {
     await delay(200);
-    return { ok: true, data: { leadId, label: "Dial attempt made" } };
+
+    // The WHOLE RECORD, not just its label.
+    //
+    // This returned `{ leadId, label }` and the store's reducer built the
+    // event itself, keying the id off `activity.length` — so deleting one
+    // entry and adding another would mint a duplicate React key, and the id
+    // was invented in the one layer this codebase says must not invent them
+    // (see the CACHE vs TRANSPORT note at the top of lib/store/crm-store.tsx).
+    // A real API returns the created row; so does this.
+    return {
+      ok: true,
+      data: {
+        leadId,
+        event: { id: localId("act"), label: "Dial attempt made", daysAgo: 0 },
+      },
+    };
   }
 
-  // TODO(backend): POST /api/leads/{leadId}/calls
-  return notImplemented<{ leadId: string; label: string }>("logCall");
+  // TODO(backend): POST /api/leads/{leadId}/calls — return the created
+  // activity record, including the server-generated id and timestamp.
+  return notImplemented<{ leadId: string; event: ActivityEvent }>("logCall");
 }
 
 /* ==========================================================================
@@ -309,7 +378,11 @@ export async function createRep(input: NewRepInput): Promise<ApiResult<Rep>> {
         name: input.name,
         email: input.email,
         role: "Sales Rep",
+        // A brand new rep has done nothing yet, and every counter says so.
+        // `dialsToday` is not optional on purpose: a missing figure would
+        // render as "NaN" on the one card the rep is measured by.
         dials: 0,
+        dialsToday: 0,
         appointments: 0,
         conversions: 0,
         active: true,
@@ -390,6 +463,361 @@ export async function reorderStages(
 
   // TODO(backend): PUT /api/stages/order { orderedIds }
   return notImplemented<string[]>("reorderStages");
+}
+
+/* ==========================================================================
+   DELIVERY  —  everything the dev workspace writes
+   --------------------------------------------------------------------------
+   These are the write side of the client portal. Each one publishes something
+   a client reads within seconds on /portal, which is why every function here
+   returns the WHOLE updated lead rather than a fragment: the store applies it
+   with `lead/updated` and every screen showing that record — the dev
+   workspace, the admin lead detail, and the client's own dashboard — moves at
+   the same time and cannot disagree.
+
+   The role that may call these is `dev` (and `admin`). See the field-ownership
+   table in config/roles.ts.
+   ========================================================================== */
+
+/**
+ * Put the three-state milestone list back into a coherent shape.
+ *
+ * ──────────────────────────────────────────────────────────────────────────
+ * THE ONE RULE, AND WHY IT IS A RULE AND NOT A FIELD
+ * ──────────────────────────────────────────────────────────────────────────
+ * A developer sees a CHECKBOX per step: done, or not done. A client sees THREE
+ * states: Complete, In progress, Not started. Rather than ask the developer to
+ * maintain the middle one by hand — which is the version that goes stale in a
+ * week, leaving a client reading "We're working on Design" a month after
+ * Design shipped — it is DERIVED here after every edit:
+ *
+ *     the first step that is not done  ->  in_progress
+ *     everything after it              ->  pending
+ *     everything explicitly ticked     ->  done
+ *
+ * Call it after ANY change to the array: toggle, add, remove, reorder. It is
+ * the only thing in the codebase that should ever write `status`.
+ *
+ * Consequences worth knowing:
+ *   - ticking step 3 while step 2 is open leaves step 2 as the in-progress
+ *     one, which is correct: that IS the work still outstanding
+ *   - with every step done there is no in_progress, which is what
+ *     `selectProjectProgress().launched` reads to say "your project is live"
+ *   - reordering can move which step is in progress, and that is the point
+ *
+ * TODO(backend): reproduce this server-side. If the API lets a client of the
+ * API set `status` directly, the two definitions drift and the portal starts
+ * contradicting the workspace.
+ */
+export function normalizeMilestones(milestones: Milestone[]): Milestone[] {
+  let foundOpen = false;
+
+  return milestones.map((milestone) => {
+    if (milestone.status === "done") return milestone;
+
+    if (!foundOpen) {
+      foundOpen = true;
+      return { ...milestone, status: "in_progress" as const };
+    }
+
+    return { ...milestone, status: "pending" as const };
+  });
+}
+
+/** Apply a delivery change to a lead and hand the whole record back. */
+function applyToLead(lead: Lead, changes: Partial<Lead>): Lead {
+  return { ...lead, ...changes };
+}
+
+export interface NewStepInput {
+  label: string;
+  /** ISO calendar date, or null. See `Milestone.targetDate` in lib/types.ts. */
+  targetDate?: string | null;
+}
+
+/** Add a project step to the end of the list. */
+export async function addMilestone(
+  lead: Lead,
+  input: NewStepInput,
+): Promise<ApiResult<Lead>> {
+  const label = input.label.trim();
+  if (!label) {
+    return { ok: false, message: "A step needs a name.", field: "label" };
+  }
+
+  if (!CRM_BACKEND_CONNECTED) {
+    await delay(200);
+
+    const milestone: Milestone = {
+      id: localId("ms"),
+      label,
+      // Normalisation immediately below decides the real value. Starting at
+      // "pending" rather than guessing keeps the rule in one place.
+      status: "pending",
+      targetDate: input.targetDate ?? null,
+    };
+
+    return {
+      ok: true,
+      data: applyToLead(lead, {
+        milestones: normalizeMilestones([...lead.milestones, milestone]),
+      }),
+    };
+  }
+
+  // TODO(backend): POST /api/leads/{id}/milestones { label, targetDate }
+  //   Return the updated lead, not just the new milestone — the whole point of
+  //   normalizeMilestones() is that adding one step can change another.
+  return notImplemented<Lead>("addMilestone");
+}
+
+/**
+ * Change one step: tick it, rename it, or set its target date.
+ *
+ * One function for three edits because they all resolve to "replace this
+ * milestone, then re-derive the list". Three endpoints would be three places
+ * to forget the re-derive.
+ */
+export async function updateMilestone(
+  lead: Lead,
+  milestone: Milestone,
+): Promise<ApiResult<Lead>> {
+  const label = milestone.label.trim();
+  if (!label) {
+    return { ok: false, message: "A step needs a name.", field: "label" };
+  }
+
+  if (!CRM_BACKEND_CONNECTED) {
+    await delay(160);
+
+    return {
+      ok: true,
+      data: applyToLead(lead, {
+        milestones: normalizeMilestones(
+          lead.milestones.map((entry) =>
+            entry.id === milestone.id ? { ...milestone, label } : entry,
+          ),
+        ),
+      }),
+    };
+  }
+
+  // TODO(backend): PATCH /api/leads/{id}/milestones/{milestoneId}
+  return notImplemented<Lead>("updateMilestone");
+}
+
+/** Remove a step. The client's percentage changes as a result. */
+export async function removeMilestone(
+  lead: Lead,
+  milestoneId: string,
+): Promise<ApiResult<Lead>> {
+  if (!CRM_BACKEND_CONNECTED) {
+    await delay(200);
+
+    return {
+      ok: true,
+      data: applyToLead(lead, {
+        milestones: normalizeMilestones(
+          lead.milestones.filter((entry) => entry.id !== milestoneId),
+        ),
+      }),
+    };
+  }
+
+  // TODO(backend): DELETE /api/leads/{id}/milestones/{milestoneId}
+  return notImplemented<Lead>("removeMilestone");
+}
+
+/**
+ * Persist a new step order.
+ *
+ * Takes the FULL ordered id list rather than a "moved from 2 to 4" delta, for
+ * the same reason `reorderStages` does: a dropped request can then never leave
+ * the order half-applied. Ids that are not in the list are dropped, and
+ * unknown ids are ignored, so a stale client cannot corrupt the array.
+ */
+export async function reorderMilestones(
+  lead: Lead,
+  orderedIds: string[],
+): Promise<ApiResult<Lead>> {
+  if (!CRM_BACKEND_CONNECTED) {
+    await delay(160);
+
+    const byId = new Map(lead.milestones.map((entry) => [entry.id, entry]));
+    const reordered = orderedIds
+      .map((id) => byId.get(id))
+      .filter((entry): entry is Milestone => Boolean(entry));
+
+    // A safety net, not a nicety: if the caller sent a short list, the missing
+    // steps would silently vanish from the client's progress.
+    if (reordered.length !== lead.milestones.length) {
+      return {
+        ok: false,
+        message: "That reorder did not match the current steps. Reload and try again.",
+      };
+    }
+
+    return {
+      ok: true,
+      data: applyToLead(lead, { milestones: normalizeMilestones(reordered) }),
+    };
+  }
+
+  // TODO(backend): PUT /api/leads/{id}/milestones/order { orderedIds }
+  return notImplemented<Lead>("reorderMilestones");
+}
+
+export interface NewPreviewInput {
+  label: string;
+  /** A data URL today, an object-storage URL once uploads are real. */
+  imageUrl?: string | null;
+  /** Where the client can open the working version. */
+  url?: string | null;
+  note?: string;
+}
+
+/**
+ * Share a preview with the client.
+ *
+ * Newest first, because that is the order the portal reads and the order the
+ * "Open preview" button picks from — the freshest link is the one a client
+ * should land on.
+ *
+ * TODO(backend): `imageUrl` arrives here as a base64 data URL, which must NOT
+ * go into a database column. Upload the file to object storage first (a signed
+ * PUT from the browser is the cheap version) and store the resulting URL. A
+ * client preview can show unreleased branding, so serve it from a signed,
+ * expiring URL and never from a guessable path.
+ */
+export async function addPreview(
+  lead: Lead,
+  input: NewPreviewInput,
+): Promise<ApiResult<Lead>> {
+  const label = input.label.trim();
+  if (!label) {
+    return { ok: false, message: "Give it a label.", field: "label" };
+  }
+  if (!input.imageUrl && !input.url) {
+    return { ok: false, message: "Add a screenshot or a link.", field: "url" };
+  }
+
+  if (!CRM_BACKEND_CONNECTED) {
+    await delay(240);
+
+    const preview: ProjectPreview = {
+      id: localId("prev"),
+      label,
+      note: input.note?.trim() || undefined,
+      imageUrl: input.imageUrl ?? null,
+      url: input.url ?? null,
+      updatedDaysAgo: 0,
+    };
+
+    return {
+      ok: true,
+      data: applyToLead(lead, { previews: [preview, ...lead.previews] }),
+    };
+  }
+
+  // TODO(backend): POST /api/leads/{id}/previews
+  return notImplemented<Lead>("addPreview");
+}
+
+/** Unshare a preview. It disappears from the client's dashboard. */
+export async function removePreview(
+  lead: Lead,
+  previewId: string,
+): Promise<ApiResult<Lead>> {
+  if (!CRM_BACKEND_CONNECTED) {
+    await delay(200);
+
+    return {
+      ok: true,
+      data: applyToLead(lead, {
+        previews: lead.previews.filter((entry) => entry.id !== previewId),
+      }),
+    };
+  }
+
+  // TODO(backend): DELETE /api/leads/{id}/previews/{previewId}
+  //   Delete the stored object too, or an unshared preview stays reachable by
+  //   anyone who kept the URL.
+  return notImplemented<Lead>("removePreview");
+}
+
+/**
+ * Set or clear the public URL.
+ *
+ * `null` clears it, which turns the client's "Your live site" card back off.
+ * That is a real action with a real consequence, so the UI confirms it — see
+ * the live panel in the dev workspace.
+ */
+export async function setLiveUrl(
+  lead: Lead,
+  url: string | null,
+): Promise<ApiResult<Lead>> {
+  const trimmed = url?.trim() ?? "";
+
+  if (trimmed && !/^https?:\/\/\S+\.\S+/i.test(trimmed)) {
+    return {
+      ok: false,
+      message: "Enter a full link, starting with https://",
+      field: "url",
+    };
+  }
+
+  if (!CRM_BACKEND_CONNECTED) {
+    await delay(220);
+    return { ok: true, data: applyToLead(lead, { liveUrl: trimmed || null }) };
+  }
+
+  // TODO(backend): PATCH /api/leads/{id} { liveUrl }
+  return notImplemented<Lead>("setLiveUrl");
+}
+
+export interface NewUpdateInput {
+  title: string;
+  body?: string;
+}
+
+/**
+ * Post a note to the client's own updates feed.
+ *
+ * This is the write side of `lead.updates`, and it exists so the portal's
+ * "Latest updates" panel is a living feed rather than whatever the seed put
+ * there. It is deliberately NOT `lead.activity`: activity is the internal
+ * sales timeline ("First dial attempt made") and is never shown to a client.
+ * See the CLIENT-SAFE RULE in config/portal.ts.
+ */
+export async function addUpdate(
+  lead: Lead,
+  input: NewUpdateInput,
+): Promise<ApiResult<Lead>> {
+  const title = input.title.trim();
+  if (!title) {
+    return { ok: false, message: "Write a headline first.", field: "title" };
+  }
+
+  if (!CRM_BACKEND_CONNECTED) {
+    await delay(240);
+
+    const update: ProjectUpdate = {
+      id: localId("upd"),
+      title,
+      body: input.body?.trim() || undefined,
+      daysAgo: 0,
+    };
+
+    return {
+      ok: true,
+      data: applyToLead(lead, { updates: [update, ...lead.updates] }),
+    };
+  }
+
+  // TODO(backend): POST /api/leads/{id}/updates
+  //   This is the one write here that should probably NOTIFY — a client who
+  //   never opens the portal never sees it. Email is the obvious channel.
+  return notImplemented<Lead>("addUpdate");
 }
 
 /* ==========================================================================

@@ -77,6 +77,8 @@ export interface ReportsConfig {
   defaultRangeDays: number;
   kpis: KpiDefinition<ReportKpiKey>[];
   content: {
+    /** The dials table's visually-hidden `<caption>`. */
+    dialsTableCaption: string;
     rangeLabel: string;
     exportCsvLabel: string;
     exportPdfLabel: string;
@@ -163,6 +165,8 @@ export const reportsConfig: ReportsConfig = {
   ],
 
   content: {
+    dialsTableCaption:
+      "Sales reps ranked by dials, with conversions per 100 dials",
     rangeLabel: "Date range",
     exportCsvLabel: "Export CSV",
     exportPdfLabel: "Export PDF",

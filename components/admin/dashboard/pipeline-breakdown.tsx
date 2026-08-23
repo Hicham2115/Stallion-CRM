@@ -6,7 +6,8 @@ import { adminConfig } from "@/config/admin";
 import { findStage, pipelineConfig, stageColor } from "@/config/pipeline";
 import { formatPercent } from "@/lib/format";
 import { useCrm } from "@/lib/store/crm-store";
-import { selectStageCounts } from "@/lib/store/selectors";
+import { stageCountsOf } from "@/lib/store/selectors";
+import type { Lead } from "@/lib/types";
 
 const { content } = adminConfig.dashboard;
 
@@ -51,9 +52,19 @@ const FIGURES_COLUMN = "5.5rem";
  * magnitude rather than only a comparison. They are hairlines, not a chart
  * frame — see the "Do" about hairlines in DESIGN.md.
  */
-export function PipelineBreakdown() {
+export function PipelineBreakdown({
+  /** The leads to chart. Defaults to every lead in the store. */
+  leads,
+  /** Override the heading — the rep dashboard calls this "My Leads by Stage". */
+  title = content.pipelineBreakdownTitle,
+  hint = content.pipelineBreakdownHint,
+}: {
+  leads?: Lead[];
+  title?: string;
+  hint?: string;
+} = {}) {
   const { state } = useCrm();
-  const counts = selectStageCounts(state);
+  const counts = stageCountsOf(leads ?? state.leads, state.stageOrder);
 
   const isEmpty = counts.every((entry) => entry.count === 0);
 
@@ -70,10 +81,7 @@ export function PipelineBreakdown() {
 
   return (
     <Panel ticks className="flex h-full flex-col">
-      <PanelHeader
-        title={content.pipelineBreakdownTitle}
-        hint={content.pipelineBreakdownHint}
-      />
+      <PanelHeader title={title} hint={hint} />
 
       <PanelBody className="flex flex-1 flex-col justify-center">
         {isEmpty ? (

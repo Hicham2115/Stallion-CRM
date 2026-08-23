@@ -62,6 +62,14 @@ export interface ConsoleConfig {
      * useEffect instead would flash expanded-then-collapsed on every load.
      */
     sidebarCookie: string;
+    /**
+     * How long that preference is remembered, in days.
+     *
+     * It was `max-age=31536000` written inline in the component — a number
+     * nobody would recognise as a year, in the one place a reader is not
+     * looking for configuration.
+     */
+    sidebarCookieDays: number;
   };
   /**
    * How long an Undo stays on screen, in milliseconds.
@@ -88,8 +96,10 @@ export interface ConsoleConfig {
     userMenuLabel: string;
     mockDataLabel: string;
     mockDataTooltip: string;
-    /** Sidebar footer readout. */
+    /** Sidebar footer readout, for an admin: the team average. */
     sidebarStatLabel: string;
+    /** The same readout for a sales rep, whose figure is first-person. */
+    repStatLabel: string;
     /** Accessible name of the navigation landmark. */
     navLabel: string;
     /**
@@ -99,6 +109,16 @@ export interface ConsoleConfig {
     undoLabel: string;
     /** Default dismiss label on a confirmation dialog. */
     cancelLabel: string;
+    /**
+     * Shown once when the browser refuses to save console state.
+     *
+     * Realistic since the dev workspace can store screenshots: localStorage is
+     * ~5MB for the whole origin. Without this the console keeps working
+     * perfectly on screen and quietly stops persisting, so every change since
+     * is lost on refresh with nothing anywhere to explain it.
+     */
+    storageFullTitle: string;
+    storageFullBody: string;
   };
 }
 
@@ -117,6 +137,7 @@ export const consoleConfig: ConsoleConfig = {
     sidebarWidth: "16.25rem",
     sidebarCollapsedWidth: "4.5rem",
     sidebarCookie: "stallion-sidebar-collapsed",
+    sidebarCookieDays: 365,
   },
 
   content: {
@@ -132,8 +153,12 @@ export const consoleConfig: ConsoleConfig = {
     mockDataTooltip:
       "This console is running on sample data stored in your browser. Nothing here is real.",
     sidebarStatLabel: "Team dials / rep",
+    repStatLabel: "My dials today",
     navLabel: "Main",
     undoLabel: "Undo",
     cancelLabel: "Cancel",
+    storageFullTitle: "Changes are not being saved",
+    storageFullBody:
+      "This browser has run out of space for the demo data. Remove a screenshot or two, or reset the demo data in Settings.",
   },
 };

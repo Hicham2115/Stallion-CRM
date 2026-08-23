@@ -8,7 +8,9 @@ import { GripVertical, TriangleAlert } from "lucide-react";
 import { InitialsAvatar } from "@/components/deck/initials-avatar";
 import { SourceBadge } from "@/components/deck/source-badge";
 import { boardConfig } from "@/config/board";
+import { useSession } from "@/components/console/session-provider";
 import { clientsConfig } from "@/config/clients";
+import { roleDefinitions } from "@/config/roles";
 import { formatDaysInStage, template } from "@/lib/format";
 import type { Lead } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -39,6 +41,19 @@ export function LeadCard({
   dragging?: boolean;
   overlay?: boolean;
 }) {
+  /**
+   * The card is shared by the admin board and the rep board, and the same lead
+   * is a different page to each of them. Reading the route from the session
+   * rather than taking a prop means every front that ever reuses this board
+   * gets correct links without threading one through `PipelineBoard` and
+   * `StageColumn` first — and without anyone remembering to.
+   *
+   * It linked to `/admin/clients/{id}` unconditionally until now, so a rep
+   * clicking a card on their own board was sent to a URL their route guard
+   * bounced straight back out of.
+   */
+  const session = useSession();
+
   const {
     attributes,
     listeners,
@@ -88,7 +103,7 @@ export function LeadCard({
             </p>
           ) : (
             <Link
-              href={`/admin/clients/${lead.id}`}
+              href={roleDefinitions[session.role].leadRoute(lead.id)}
               className="block truncate rounded text-[0.8125rem] font-medium text-ink outline-none hover:text-brand focus-visible:ring-2 focus-visible:ring-brand/60"
             >
               {lead.name}

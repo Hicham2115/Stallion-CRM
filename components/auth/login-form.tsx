@@ -25,13 +25,16 @@ import {
   fieldLabel,
   fieldWarningText,
 } from "@/components/deck/field";
+import { SegmentedControl } from "@/components/deck/segmented-control";
 import { WarningChip } from "@/components/deck/warning-chip";
 import { loginConfig } from "@/config/login";
+import type { Role } from "@/config/roles";
 import {
   authBackendConnected,
   signInWithGoogle,
   signInWithPassword,
 } from "@/lib/auth";
+import { homeFor, writePreviewSession } from "@/lib/session";
 import { cn } from "@/lib/utils";
 
 const { content, features, routes, validation } = loginConfig;
@@ -46,6 +49,34 @@ const { content, features, routes, validation } = loginConfig;
  * accident in production.
  */
 const previewMode = features.previewFallback && !authBackendConnected;
+
+/**
+ * Whether the card offers a choice of which front to open.
+ *
+ * Only ever inside preview mode: once credentials are checked, WHO you are
+ * decides where you land, and letting someone pick would be the whole point of
+ * having roles, undone. See `features.previewRoleSwitch` in config/login.ts.
+ */
+const roleSwitch = previewMode && features.previewRoleSwitch;
+
+/** The fronts the switch can open, in the order config declares them. */
+const ROLE_OPTIONS = content.previewRoles.map((entry) => ({
+  value: entry.role,
+  label: entry.label,
+}));
+
+/**
+ * The submit label for a chosen role.
+ *
+ * Falls back to the generic label rather than rendering an empty button if a
+ * role is ever offered without one.
+ */
+function submitLabelFor(role: Role): string {
+  return (
+    content.previewRoles.find((entry) => entry.role === role)?.submitLabel ??
+    content.previewSubmitLabel
+  );
+}
 
 /* --------------------------------------------------------------------------
    Field styling comes from components/deck/field.ts, shared with the console
@@ -97,6 +128,12 @@ export function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [capsLock, setCapsLock] = useState(false);
 
+  /**
+   * Which front the preview build should open. Ignored entirely once auth is
+   * real — see `roleSwitch` above.
+   */
+  const [previewRole, setPreviewRole] = useState<Role>("admin");
+
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   /** Which action is in flight, so the two buttons show separate spinners. */
@@ -132,7 +169,21 @@ export function LoginForm() {
     // reviewed, and a button that changes nothing on click reads as broken.
     if (previewMode) {
       setPending("password");
-      router.push(routes.afterSignIn);
+
+      // Remember the choice so the SERVER can read it: which sidebar, which
+      // identity and which routes are allowed are all decided during the server
+      // render, from this cookie. See lib/session.ts.
+      writePreviewSession(roleSwitch ? previewRole : "admin");
+
+      // A DOCUMENT navigation, not router.push(). The destination is rendered
+      // on the server from the cookie just written, and Next's client cache
+      // does not know the cookie changed — it can legitimately replay a payload
+      // rendered for the PREVIOUS role, which is how you end up signing in as a
+      // client and landing on the admin dashboard. `router.refresh()` does not
+      // fix it either: it only clears the cache for the route you are already
+      // on. A full load has no cache in between, and a sign-in is exactly the
+      // moment a full load costs nothing.
+      window.location.assign(homeFor(roleSwitch ? previewRole : "admin"));
       return;
     }
 
@@ -243,6 +294,34 @@ export function LoginForm() {
             {content.subtitle}
           </p>
         </header>
+
+        {/* ---------------------------------------------------------------- */}
+        {/* Which front to open. PREVIEW BUILD ONLY — see `roleSwitch`.       */}
+        {/* Sits above the fields because in preview mode it is the only      */}
+        {/* control on the card that changes the outcome; putting it below    */}
+        {/* two inputs nobody has to fill in would bury the one that matters. */}
+        {/* ---------------------------------------------------------------- */}
+        {roleSwitch && (
+          <div className="mt-7">
+            <p className={fieldLabel}>{content.previewRoleLabel}</p>
+
+            <SegmentedControl
+              // `quiet`, not the default lime fill: the submit button below is
+              // already this card's one lime answer. See THE ONE LIME ANSWER
+              // RULE in DESIGN.md.
+              tone="quiet"
+              className="mt-2.5 w-full"
+              label={content.previewRoleGroupLabel}
+              value={previewRole}
+              onValueChange={setPreviewRole}
+              options={ROLE_OPTIONS}
+            />
+
+            <p className="mt-2 text-[0.75rem] leading-relaxed text-ink-muted">
+              {content.previewRoleHint}
+            </p>
+          </div>
+        )}
 
         {/* ---------------------------------------------------------------- */}
         {/* Google SSO — remove by setting features.googleSignIn = false      */}
@@ -442,7 +521,12 @@ export function LoginForm() {
               </>
             ) : (
               <>
-                {previewMode ? content.previewSubmitLabel : content.submitLabel}
+                {/* Names the destination the switch above is set to. */}
+                {previewMode
+                  ? roleSwitch
+                    ? submitLabelFor(previewRole)
+                    : content.previewSubmitLabel
+                  : content.submitLabel}
                 <ArrowRight
                   aria-hidden
                   className="size-4 transition-transform duration-200 group-hover:translate-x-0.5"

@@ -9,10 +9,12 @@ import { MobileNav } from "@/components/console/mobile-nav";
 import { InitialsAvatar } from "@/components/deck/initials-avatar";
 import { MockDataChip } from "@/components/console/mock-data-chip";
 import { usePageTitle } from "@/components/console/page-title";
+import { useSession } from "@/components/console/session-provider";
 import { consoleConfig } from "@/config/console";
 import { findNavItem, notificationIcon as Bell } from "@/config/navigation";
 import { firstNameOf, template } from "@/lib/format";
 import { useCrm } from "@/lib/store/crm-store";
+import { selectSessionUser } from "@/lib/store/selectors";
 
 /**
  * The bar across the top of every console page.
@@ -25,7 +27,14 @@ import { useCrm } from "@/lib/store/crm-store";
 export function ConsoleTopbar() {
   const pathname = usePathname();
   const { state } = useCrm();
-  const user = state.currentUser;
+  const session = useSession();
+
+  // Not `state.currentUser` directly. The store holds one identity (the agency
+  // admin from the seed); a client session has to show the CLIENT — their name,
+  // their company, a CLIENT badge. Resolving it from the session keeps that out
+  // of persisted state, so switching roles cannot leave the previous person’s
+  // name in the bar. See selectSessionUser() in lib/store/selectors.ts.
+  const user = selectSessionUser(state, session);
 
   const item = findNavItem(pathname);
   const override = usePageTitle();

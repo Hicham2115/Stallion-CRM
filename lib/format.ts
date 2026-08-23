@@ -119,6 +119,47 @@ export function formatDaysAgo(days: number): string {
   return `${days} days ago`;
 }
 
+/**
+ * An ISO calendar date as a short label, e.g. "2026-09-15" -> "15 Sep".
+ *
+ * PARSED BY HAND, AND FORMATTED IN UTC. `new Date("2026-09-15")` is defined as
+ * UTC midnight, so formatting it in any timezone west of Greenwich renders the
+ * PREVIOUS day — a target date typed as the 15th would show as the 14th for
+ * anyone in Casablanca during winter time, and the agency is in Morocco. Fixing
+ * the parse and the timezone together is what makes the string say what was
+ * typed.
+ *
+ * Returns "" for null, so a caller can render the absence rather than "Invalid
+ * Date".
+ */
+export function formatShortDate(iso: string | null): string {
+  if (!iso) return "";
+
+  const [year, month, day] = iso.split("-").map(Number);
+  if (!year || !month || !day) return "";
+
+  return new Intl.DateTimeFormat(locale, {
+    day: "numeric",
+    month: "short",
+    timeZone: "UTC",
+  }).format(new Date(Date.UTC(year, month - 1, day)));
+}
+
+/** The same date with the year, for places with room, e.g. "15 Sep 2026". */
+export function formatDate(iso: string | null): string {
+  if (!iso) return "";
+
+  const [year, month, day] = iso.split("-").map(Number);
+  if (!year || !month || !day) return "";
+
+  return new Intl.DateTimeFormat(locale, {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(Date.UTC(year, month - 1, day)));
+}
+
 /** "4 days in stage" — the label under a kanban card. */
 export function formatDaysInStage(days: number): string {
   return `${days} ${days === 1 ? "day" : "days"} in stage`;

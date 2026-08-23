@@ -31,14 +31,26 @@ import {
   type ReactNode,
 } from "react";
 
+import { toast } from "sonner";
+
 import * as crmApi from "@/lib/crm-api";
+import { useSession } from "@/components/console/session-provider";
+import { consoleConfig } from "@/config/console";
 import { createSeedState } from "@/lib/mock/seed";
 import {
   clearPersistedState,
   readPersistedState,
   writePersistedState,
 } from "@/lib/store/persistence";
-import type { ChatMessage, CrmState, Lead, Rep } from "@/lib/types";
+import { selectSessionUser } from "@/lib/store/selectors";
+import type {
+  ActivityEvent as ActivityEventInput,
+  ChatMessage,
+  CrmState,
+  Lead,
+  Milestone,
+  Rep,
+} from "@/lib/types";
 
 /* --------------------------------------------------------------------------
    Actions
@@ -52,7 +64,7 @@ type CrmAction =
   | { type: "lead/removed"; id: string }
   | { type: "lead/restored"; lead: Lead; index: number }
   | { type: "lead/noteAdded"; leadId: string; note: Lead["notes"][number] }
-  | { type: "lead/activityAdded"; leadId: string; label: string }
+  | { type: "lead/activityAdded"; leadId: string; event: ActivityEventInput }
   | { type: "rep/added"; rep: Rep }
   | { type: "rep/updated"; rep: Rep }
   | { type: "rep/removed"; id: string }
@@ -108,21 +120,16 @@ function reducer(state: CrmState, action: CrmAction): CrmState {
       };
 
     case "lead/activityAdded":
+      // The event arrives fully formed from the API. The reducer used to build
+      // it here and key the id off `activity.length`, which mints a duplicate
+      // the moment anything is ever removed — and puts id generation in the
+      // CACHE, which the note at the top of this file says is the transport's
+      // job. See logCall() in lib/crm-api.ts.
       return {
         ...state,
         leads: state.leads.map((lead) =>
           lead.id === action.leadId
-            ? {
-                ...lead,
-                activity: [
-                  ...lead.activity,
-                  {
-                    id: `act-${lead.id}-${lead.activity.length}`,
-                    label: action.label,
-                    daysAgo: 0,
-                  },
-                ],
-              }
+            ? { ...lead, activity: [...lead.activity, action.event] }
             : lead,
         ),
       };
@@ -206,7 +213,7 @@ interface CrmContextValue {
     ) => Promise<crmApi.ApiResult<{ leadId: string; note: Lead["notes"][number] }>>;
     logCall: (
       leadId: string,
-    ) => Promise<crmApi.ApiResult<{ leadId: string; label: string }>>;
+    ) => Promise<crmApi.ApiResult<{ leadId: string; event: ActivityEventInput }>>;
     addRep: (input: crmApi.NewRepInput) => Promise<crmApi.ApiResult<Rep>>;
     saveRep: (rep: Rep) => Promise<crmApi.ApiResult<Rep>>;
     setRepActive: (rep: Rep, active: boolean) => Promise<crmApi.ApiResult<Rep>>;
@@ -229,6 +236,48 @@ interface CrmContextValue {
         timeLabel: string;
       }>
     >;
+
+    /* ---------------------------------------------------------------------
+       DELIVERY — what the dev workspace writes, and the client portal reads.
+
+       Every one of these takes the whole `Lead` rather than an id, because the
+       API functions behind them return a complete updated record: that is what
+       lets one write move the workspace, the admin lead detail and the
+       client's dashboard together. See the DELIVERY block in lib/crm-api.ts.
+       --------------------------------------------------------------------- */
+
+    addStep: (
+      lead: Lead,
+      input: crmApi.NewStepInput,
+    ) => Promise<crmApi.ApiResult<Lead>>;
+    /** Tick, rename, or set a target date — all one write. */
+    saveStep: (lead: Lead, step: Milestone) => Promise<crmApi.ApiResult<Lead>>;
+    removeStep: (lead: Lead, stepId: string) => Promise<crmApi.ApiResult<Lead>>;
+    reorderSteps: (
+      lead: Lead,
+      orderedIds: string[],
+    ) => Promise<crmApi.ApiResult<Lead>>;
+
+    addPreview: (
+      lead: Lead,
+      input: crmApi.NewPreviewInput,
+    ) => Promise<crmApi.ApiResult<Lead>>;
+    removePreview: (
+      lead: Lead,
+      previewId: string,
+    ) => Promise<crmApi.ApiResult<Lead>>;
+
+    /** `null` clears it and turns the client's live-site card back off. */
+    setLiveUrl: (
+      lead: Lead,
+      url: string | null,
+    ) => Promise<crmApi.ApiResult<Lead>>;
+
+    postUpdate: (
+      lead: Lead,
+      input: crmApi.NewUpdateInput,
+    ) => Promise<crmApi.ApiResult<Lead>>;
+
     /** Wipe local changes and reseed. Backs the "Reset demo data" control. */
     resetDemoData: () => void;
   };
@@ -237,6 +286,8 @@ interface CrmContextValue {
 const CrmContext = createContext<CrmContextValue | null>(null);
 
 export function CrmProvider({ children }: { children: ReactNode }) {
+  const session = useSession();
+
   // The server and the FIRST client render both use the seed, so the markup
   // matches and hydration is clean. Persisted state is swapped in immediately
   // afterwards, in an effect — reading localStorage during render would produce
@@ -253,19 +304,60 @@ export function CrmProvider({ children }: { children: ReactNode }) {
   // over a user's saved state during the first render would wipe their data on
   // every page load.
   const hydratedOnce = useRef(false);
+  /** So a full disk warns once, not on every keystroke afterwards. */
+  const storageWarned = useRef(false);
+
   useEffect(() => {
     if (!state.hydrated) return;
     if (!hydratedOnce.current) {
       hydratedOnce.current = true;
       return;
     }
-    writePersistedState(state);
+
+    const saved = writePersistedState(state);
+
+    // A silent failure here is the worst outcome in the whole store: the
+    // console goes on working perfectly and simply stops remembering, which
+    // looks like random data loss an hour later. Since the dev workspace can
+    // store screenshots, running out of quota is a realistic thing to do
+    // rather than a theoretical one.
+    if (!saved && !storageWarned.current) {
+      storageWarned.current = true;
+      toast.error(consoleConfig.content.storageFullTitle, {
+        description: consoleConfig.content.storageFullBody,
+        duration: Infinity,
+      });
+    }
   }, [state]);
+
+  /**
+   * Whose name goes on a note or a message.
+   *
+   * ── WHY THIS EXISTS ───────────────────────────────────────────────────────
+   * It was the literal string "You" for both. That is correct for the person
+   * typing and wrong for everyone else who opens the same record, and with
+   * four fronts reading one database it broke two things outright:
+   *
+   *   - a note written by a rep read "You" in their manager's console
+   *   - a message a rep sent was stored with authorName "You", so
+   *     `messagesForViewer()` — which matches the author against the reader —
+   *     rendered the rep's OWN message as the manager's, on the one screen
+   *     whose job is telling the two apart
+   *
+   * `selectSessionUser` resolves the display name for whichever role is signed
+   * in, so a note is attributed to the person who actually wrote it.
+   *
+   * TODO(backend): send the author's ID, not their name. The server knows who
+   * is calling from the session and should stamp the record itself — a
+   * client-supplied author is a client-supplied lie waiting to happen, and two
+   * people with the same display name break every comparison downstream.
+   */
+  const authorName = selectSessionUser(state, session).name;
 
   const actions = useMemo<CrmContextValue["actions"]>(
     () => ({
       async addClient(input) {
-        const result = await crmApi.createClient(input);
+        const result = await crmApi.createClient({ authorName, ...input });
         if (result.ok) dispatch({ type: "lead/added", lead: result.data });
         return result;
       },
@@ -297,7 +389,7 @@ export function CrmProvider({ children }: { children: ReactNode }) {
       },
 
       async addNote(leadId, body) {
-        const result = await crmApi.addNote(leadId, body, "You");
+        const result = await crmApi.addNote(leadId, body, authorName);
         if (result.ok) {
           dispatch({
             type: "lead/noteAdded",
@@ -314,7 +406,7 @@ export function CrmProvider({ children }: { children: ReactNode }) {
           dispatch({
             type: "lead/activityAdded",
             leadId: result.data.leadId,
-            label: result.data.label,
+            event: result.data.event,
           });
         }
         return result;
@@ -365,20 +457,82 @@ export function CrmProvider({ children }: { children: ReactNode }) {
       },
 
       async sendMessage(threadId, body) {
-        const result = await crmApi.sendMessage(threadId, body, "You");
+        const result = await crmApi.sendMessage(threadId, body, authorName);
         if (result.ok) {
           dispatch({
             type: "chat/messageAdded",
             threadId: result.data.threadId,
             message: {
               id: result.data.id,
-              authorName: "You",
+              // The real name, so the OTHER side of the thread attributes it
+              // correctly — and so `messagesForViewer()` can recognise it as
+              // the sender's own on the way back.
+              authorName,
               body: result.data.body,
               timeLabel: result.data.timeLabel,
+              // Stored for the sender's immediate render; every reader
+              // re-derives it. See messagesForViewer() in selectors.ts.
               fromMe: true,
             },
           });
         }
+        return result;
+      },
+
+      /* -------------------------------------------------------------------
+         DELIVERY
+
+         All eight follow one shape: call the API, and if it succeeds apply the
+         returned record with `lead/updated`. No new reducer cases, because
+         there is nothing new to reduce — the API hands back a whole lead, the
+         same as moveLead and assignLead already do.
+         ------------------------------------------------------------------- */
+
+      async addStep(lead, input) {
+        const result = await crmApi.addMilestone(lead, input);
+        if (result.ok) dispatch({ type: "lead/updated", lead: result.data });
+        return result;
+      },
+
+      async saveStep(lead, step) {
+        const result = await crmApi.updateMilestone(lead, step);
+        if (result.ok) dispatch({ type: "lead/updated", lead: result.data });
+        return result;
+      },
+
+      async removeStep(lead, stepId) {
+        const result = await crmApi.removeMilestone(lead, stepId);
+        if (result.ok) dispatch({ type: "lead/updated", lead: result.data });
+        return result;
+      },
+
+      async reorderSteps(lead, orderedIds) {
+        const result = await crmApi.reorderMilestones(lead, orderedIds);
+        if (result.ok) dispatch({ type: "lead/updated", lead: result.data });
+        return result;
+      },
+
+      async addPreview(lead, input) {
+        const result = await crmApi.addPreview(lead, input);
+        if (result.ok) dispatch({ type: "lead/updated", lead: result.data });
+        return result;
+      },
+
+      async removePreview(lead, previewId) {
+        const result = await crmApi.removePreview(lead, previewId);
+        if (result.ok) dispatch({ type: "lead/updated", lead: result.data });
+        return result;
+      },
+
+      async setLiveUrl(lead, url) {
+        const result = await crmApi.setLiveUrl(lead, url);
+        if (result.ok) dispatch({ type: "lead/updated", lead: result.data });
+        return result;
+      },
+
+      async postUpdate(lead, input) {
+        const result = await crmApi.addUpdate(lead, input);
+        if (result.ok) dispatch({ type: "lead/updated", lead: result.data });
         return result;
       },
 
@@ -387,7 +541,9 @@ export function CrmProvider({ children }: { children: ReactNode }) {
         dispatch({ type: "reset" });
       },
     }),
-    [],
+    // Rebuilt when the signed-in person changes, which happens once per
+    // session. Everything else in here is dispatch-only and stable.
+    [authorName],
   );
 
   const value = useMemo(() => ({ state, actions }), [state, actions]);

@@ -45,10 +45,30 @@ const { content, features } = boardConfig;
  *  directly. That is what makes wiring the real backend a change to
  *  lib/crm-api.ts and nothing in this file — including the activity entry,
  *  which the API appends as part of the move.
+ *
+ *  IT IS ALSO THE REP'S BOARD. Passing `leads` narrows it to one person's
+ *  pipeline for /rep/pipeline; omitting it shows the whole database for
+ *  /admin/pipeline. One board rather than two, because a second copy is the one
+ *  that stops getting the drag fixes — and because the columns, the drop
+ *  targets and the stale markers must behave identically for a rep and their
+ *  manager or they are looking at two different tools.
  * ============================================================================
  */
-export function PipelineBoard() {
+export function PipelineBoard({
+  /**
+   * The leads to show. Defaults to every lead in the store.
+   *
+   * A SUBSET, not a filter expression: the caller decides what "mine" means
+   * (see `selectRepLeads`), so this component never has to know about roles.
+   */
+  leads: scopedLeads,
+}: {
+  leads?: Lead[];
+} = {}) {
   const { state, actions } = useCrm();
+
+  // One name for "the leads this board is about", used everywhere below.
+  const leads = scopedLeads ?? state.leads;
   const [activeId, setActiveId] = useState<string | null>(null);
 
   /**
@@ -84,7 +104,7 @@ export function PipelineBoard() {
   }, [state.stageOrder]);
 
   const leadOf = (id: string | null): Lead | undefined =>
-    id ? state.leads.find((lead) => lead.id === id) : undefined;
+    id ? leads.find((lead) => lead.id === id) : undefined;
 
   /**
    * Columns, in the store's stage order, split into the forward run and the
@@ -111,7 +131,7 @@ export function PipelineBoard() {
 
       return {
         stage,
-        leads: state.leads.filter((lead) => lead.stageId === entry.id),
+        leads: leads.filter((lead) => lead.stageId === entry.id),
       };
     });
 
@@ -123,7 +143,7 @@ export function PipelineBoard() {
       progression: columns.filter((column) => !column.stage.isLost),
       lost: columns.filter((column) => column.stage.isLost),
     };
-  }, [state.stageOrder, state.leads]);
+  }, [state.stageOrder, leads]);
 
   /**
    * Spoken during a keyboard drag.
@@ -175,7 +195,7 @@ export function PipelineBoard() {
    */
   function resolveStageId(overId: string): string {
     if (state.stageOrder.some((stage) => stage.id === overId)) return overId;
-    return state.leads.find((lead) => lead.id === overId)?.stageId ?? overId;
+    return leads.find((lead) => lead.id === overId)?.stageId ?? overId;
   }
 
   function handleDragStart(event: DragStartEvent) {

@@ -70,6 +70,12 @@ export interface ClientsConfig {
     callLabel: string;
     emailLabel: string;
     rowActionsLabel: string;
+    /**
+     * The table's `<caption>`. Visually hidden, read aloud by screen readers
+     * before the rows — so it has to say what the table CONTAINS, not repeat
+     * the page heading above it.
+     */
+    tableCaption: string;
     deleteLabel: string;
     deleteTitle: string;
     deleteDescription: string;
@@ -163,6 +169,8 @@ export const clientsConfig: ClientsConfig = {
     callLabel: "Call",
     emailLabel: "Email",
     rowActionsLabel: "Client actions",
+    tableCaption:
+      "Paying clients, with contact details and their most recent note",
     deleteLabel: "Delete client",
     deleteTitle: "Delete this client?",
     deleteDescription:

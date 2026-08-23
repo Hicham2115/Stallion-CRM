@@ -3,6 +3,25 @@
 import { cn } from "@/lib/utils";
 
 /**
+ * How the selected segment is painted.
+ *
+ * `accent` is the default: a lime fill, which is the strongest thing on the
+ * control and reads instantly. `quiet` exists because of THE ONE LIME ANSWER
+ * RULE in DESIGN.md — a screen gets at most one lime fill in its content
+ * column, and on /login that fill is already spent on the submit button. A
+ * second one beside it would make two controls compete to be the answer to
+ * "what do I do here", when only one of them is.
+ *
+ * Use `quiet` whenever the control sits on a screen that already has a lime
+ * primary action.
+ */
+const TONES = {
+  accent: "bg-brand text-deck-void",
+  quiet:
+    "border border-hairline-strong bg-white/[0.08] text-ink shadow-[inset_0_1px_0_0_rgb(255_255_255/0.05)]",
+} as const;
+
+/**
  * A two-or-more-way view switch.
  *
  * WHY IT LOOKS LIKE A CONTROL. In the prototype "Kanban / Funnel" was rendered
@@ -23,12 +42,15 @@ export function SegmentedControl<Value extends string>({
   options,
   /** Accessible name for the group, e.g. "Board view". */
   label,
+  tone = "accent",
   className,
 }: {
   value: Value;
   onValueChange: (value: Value) => void;
   options: Array<{ value: Value; label: string; icon?: React.ReactNode }>;
   label: string;
+  /** See TONES above. `quiet` for screens that already spend their lime. */
+  tone?: keyof typeof TONES;
   className?: string;
 }) {
   return (
@@ -73,7 +95,7 @@ export function SegmentedControl<Value extends string>({
             className={cn(
               "inline-flex h-8 items-center gap-1.5 rounded-lg px-3 text-[0.8125rem] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60",
               active
-                ? "bg-brand text-deck-void"
+                ? TONES[tone]
                 : "text-ink-muted hover:bg-white/[0.05] hover:text-ink-soft",
             )}
           >

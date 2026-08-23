@@ -16,6 +16,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { adminConfig } from "@/config/admin";
 import { clientsConfig } from "@/config/clients";
 import { initialsOf } from "@/lib/format";
 import type { Lead } from "@/lib/types";
@@ -60,7 +61,7 @@ export function ClientsTable({
   return (
     <DataTable
       columns={columns}
-      caption="Paying clients, with contact details and their most recent note"
+      caption={content.tableCaption}
       minWidth="52rem"
       stickyFirstColumn
     >
@@ -71,7 +72,7 @@ export function ClientsTable({
           {/* ---------------------------------------------------------- */}
           <DataCell sticky className="group-hover:bg-deck-row">
             <Link
-              href={`/admin/clients/${client.id}`}
+              href={adminConfig.routes.client(client.id)}
               className="flex items-center gap-3 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-brand/60"
             >
               <span

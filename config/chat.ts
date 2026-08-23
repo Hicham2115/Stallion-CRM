@@ -39,6 +39,14 @@ export interface ChatConfig {
     noSelectionDescription: string;
     noRepsTitle: string;
     noRepsDescription: string;
+    /**
+     * What a message you wrote is attributed to, for screen readers.
+     *
+     * "You" is correct for every viewer, which is exactly why it must not be
+     * STORED as the author name — see the note on `messagesForViewer()` in
+     * lib/store/selectors.ts.
+     */
+    selfLabel: string;
     /** Accessible name for the message log region. */
     messageLogLabel: string;
     composerPlaceholder: string;
@@ -70,6 +78,7 @@ export const chatConfig: ChatConfig = {
     noSelectionDescription: "Choose a rep from the list to see your messages.",
     noRepsTitle: "No reps yet",
     noRepsDescription: "Add a rep from Settings to start messaging.",
+    selfLabel: "You",
     messageLogLabel: "Messages",
     composerPlaceholder: "Write a message…",
     sendLabel: "Send",

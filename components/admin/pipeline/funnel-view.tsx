@@ -5,7 +5,8 @@ import { boardConfig } from "@/config/board";
 import { findStage, pipelineConfig, stageColor } from "@/config/pipeline";
 import { formatPercent } from "@/lib/format";
 import { useCrm } from "@/lib/store/crm-store";
-import { selectStageCounts } from "@/lib/store/selectors";
+import { stageCountsOf } from "@/lib/store/selectors";
+import type { Lead } from "@/lib/types";
 
 const { content } = boardConfig;
 
@@ -15,11 +16,13 @@ const { content } = boardConfig;
  * ============================================================================
  *  The same pipeline drawn as drop-off rather than as columns.
  *
- *  NO NEW ARITHMETIC. This is built entirely from `selectStageCounts`, which
+ *  NO NEW ARITHMETIC. This is built entirely from `stageCountsOf`, which
  *  already computes stage-to-stage conversion for the dashboard's Client Status
  *  panel — the funnel is that data drawn a second way. Sharing the selector is
  *  what guarantees the funnel and the dashboard can never disagree, and it is
- *  why the panel documents its own formula there rather than here.
+ *  why the panel documents its own formula there rather than here. It also
+ *  means a rep's funnel and the agency's are the same computation over
+ *  different lead sets.
  *
  *  Bar width is REACH — how many leads ever got this far — not the count
  *  sitting in the stage right now. A lead currently marked Client has already
@@ -32,9 +35,15 @@ const { content } = boardConfig;
  *  it is the same mistake as the seventh kanban column.
  * ============================================================================
  */
-export function FunnelView() {
+export function FunnelView({
+  /** The leads to measure. Defaults to every lead — see PipelineBoard for the
+   *  same prop and the same reasoning. */
+  leads,
+}: {
+  leads?: Lead[];
+} = {}) {
   const { state } = useCrm();
-  const counts = selectStageCounts(state);
+  const counts = stageCountsOf(leads ?? state.leads, state.stageOrder);
 
   // Progression only, in order. `conversionFromPrevious` is already scoped to
   // this same set by the selector.

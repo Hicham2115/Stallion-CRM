@@ -8,23 +8,36 @@ web
 
 ## Users
 
-Four roles are planned. Only the first is built today; the other three are
-confirmed as coming, and no screen for them has been designed yet.
+All four roles are built, each with its own front and its own route guard.
 
-- **Admin (built, and the only front that exists today).** The agency lead
-  running Stallion Advertising's sales operation: watching pipeline health,
-  reading rep performance, adding clients, editing stages and reps. Everything
-  under `app/(console)/admin/` is this person's surface.
-- **Sales rep (planned).** Works leads day to day — dials, stage moves, notes,
-  team chat. Present in `navigation.ts` as the `sales` role and in the data
-  model as `Rep`, but has no dedicated front yet.
-- **Dev team (planned).** The agency's developers, who pick up work once a lead
-  becomes a paying client and delivery milestones start. **Not yet represented
-  in code** — `Role` in `config/navigation.ts` is `"admin" | "sales" | "client"`
-  and will need a fourth member.
-- **Client (planned).** A paying client signing in to see their own delivery
-  status, files and invoices. The `client` role exists in `navigation.ts` but
-  currently lands on `/admin`, which is a placeholder, not a decision.
+The map of which role writes which field, and which fields must never reach
+which audience, is `config/roles.ts`. Read it before adding a screen.
+
+- **Admin (built).** The agency lead running Stallion Advertising's sales
+  operation: watching pipeline health, reading rep performance, adding clients,
+  editing stages and reps. Everything under `app/(console)/admin/` is this
+  person's surface.
+- **Client (built, 2026-08-21).** A paying client signing in to see their own
+  project: overall progress, what stage the work is at, the preview and live
+  links, files and invoices. Everything under `app/(console)/portal/`, with its
+  copy and flags in `config/portal.ts`. A client never sees the pipeline, any
+  other client, the internal notes, the lead source or the sales timeline —
+  that boundary is stated as the CLIENT-SAFE RULE at the top of
+  `config/portal.ts` and mirrored on the types in `lib/types.ts`.
+- **Dev team (built, 2026-08-22).** The agency's developers, who pick up work
+  once a lead becomes a paying client. Everything under `app/(console)/dev/`,
+  with its copy and flags in `config/dev.ts`. The workspace is the WRITE SIDE
+  of the client portal: ticking a step moves the client's progress rail, adding
+  a preview turns on their preview card, saving a live URL turns on their
+  live-site card, and posting an update lands in their feed. A developer never
+  sees the pipeline, the lead source, the internal notes or the sales timeline.
+- **Sales rep (built, 2026-08-23).** Works their OWN leads day to day: dials,
+  stage moves, notes, appointments. Everything under `app/(console)/rep/`, with
+  its copy and flags in `config/rep.ts`. It is the agency console narrowed to
+  one person — the kanban, the funnel and the stage breakdown are the SAME
+  components with a `leads` prop, so a rep and their manager are always reading
+  the same instrument. A rep never sees another rep's leads, the team KPIs, the
+  leaderboard, Reports or Settings.
 
 ## Product Purpose
 
@@ -73,6 +86,42 @@ Built today (admin console): Dashboard with computed KPIs, Clients list and
 lead detail, Pipeline kanban with drag between stages, Team Chat, Reports,
 Settings (reps + stage editor).
 
+Built today (client portal): My Project (progress, plain-language status,
+preview + live links, stage track, updates, billing summary, named contact),
+Previews, Files, Invoices.
+
+Built today (dev workspace): Projects grid (search, status filter, overdue
+markers, New project), and one project — step checklist with drag reorder,
+inline rename and target dates; client previews with screenshot upload and link
+sharing; live-site URL; client update composer.
+
+Built today (rep workspace): Dashboard (four first-person KPIs, My Leads by
+Stage, My Clients), My Clients (search, add, table + phone cards), My Pipeline
+(kanban ⇄ funnel, scoped), Team Chat (one thread with the manager), and a
+scoped lead page with notes, log-a-call and a stage control.
+
+- **A rep's figures are derived from their LEADS, not from the `Rep`
+  counters.** The rep record carries its own `conversions`, and in the seed it
+  disagrees with the leads (Sara B. is recorded with 4, and has 2 in the Client
+  stage). On admin screens the two never appear together; on a rep's own
+  dashboard they would sit inches apart. `selectRepKpis()` derives the rates
+  from the leads and leaves the counter to the admin leaderboard — replace both
+  with dated call/appointment records when the backend lands.
+- **`ChatMessage.fromMe` is re-derived per viewer.** It is stored from the
+  manager's point of view, so every flag is backwards on the rep's side of the
+  same thread. `messagesForViewer()` computes it from the author at render
+  time; drop the stored flag once messages carry an author id.
+
+- **The three-state bridge.** A developer sees one checkbox per step; a client
+  sees Complete / In progress / Not started. The middle state is DERIVED after
+  every edit by `normalizeMilestones()` in `lib/crm-api.ts` — the first unticked
+  step is the one in progress. Nothing else may write `Milestone.status`.
+- **Screenshots are a stopgap.** Dropped images are downscaled in the browser
+  and stored as data URLs in `localStorage` (`lib/image-upload.ts`), with hard
+  caps, because the ~5MB origin quota is shared with every other record.
+  Replace with object storage plus a signed URL; the limits then belong to the
+  server.
+
 - **No backend yet.** `lib/auth.ts` and `lib/crm-api.ts` are the two integration
   boundaries, each gated by a `*_BACKEND_CONNECTED` flag. All console data is
   seeded mock data persisted to `localStorage` behind a versioned key.
@@ -85,11 +134,32 @@ Settings (reps + stage editor).
   RTL. All user-facing copy already lives in `config/*.ts` `content` objects;
   layouts must survive both a longer language and a mirrored one.
 - **Dark only.** No light mode. (User decision, 2026-08-19.)
-- Login is email + password + forgot-password. No role-picker buttons — role
-  comes from the backend session. No language switcher on the login screen.
-  (User decisions, 2026-08-18.)
+- Login is email + password + forgot-password. No language switcher on the
+  login screen. (User decisions, 2026-08-18.)
+- **Role comes from the session, not from the login form** — the 2026-08-18
+  decision stands as the end state. The one exception is the preview build: an
+  Admin / Dev / Client switch on the login card, because with credentials
+  unchecked there is otherwise nothing that can tell the three fronts apart and
+  two of them are reachable only by typing the URL. It is gated on
+  `features.previewRoleSwitch` **and** on `authBackendConnected` being false,
+  so it removes itself the day auth lands rather than needing to be remembered.
+  (User decision, 2026-08-21, amending the above for the preview build only.)
+- **Role isolation is a display switch, not a boundary, until the backend
+  lands.** `lib/session.ts` reads an unsigned cookie; the two route guards
+  (`admin`, `rep`, `dev` and `portal` layouts under `app/(console)/`) are the
+  right shape — server-side, before any markup — but become real only once
+  `readSession()` reads a verified session AND the API filters its responses by
+  role. Both are required. Two of the four matter most: `/dev`, which shows
+  every client's project to whoever gets in, and `/rep`, whose whole premise is
+  that `lead.assignedRepId === session.repId` is enforced somewhere real.
 - Terminology: *lead* is the single record type; *client* = lead in the won
   stage; *rep* = sales rep; *stage* = pipeline column; *source* = lead origin.
+  On the delivery side a *milestone* is called a **step** to a developer and a
+  **stage** to a client — same field, two audiences, and the words are in
+  `config/dev.ts` and `config/portal.ts` respectively.
+- Dates format day-first (`locale` is `en-GB` in `config/admin.ts`). `en-MA`
+  resolves to US month-first ordering in ICU, which is wrong for Morocco; every
+  other formatted figure is identical between the two.
 
 ## Brand Commitments
 
