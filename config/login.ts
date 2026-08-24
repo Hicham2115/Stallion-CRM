@@ -1,3 +1,6 @@
+import { brandConfig, type BrandConfig } from "@/config/brand";
+import type { Role } from "@/config/roles";
+
 /**
  * ============================================================================
  *  LOGIN SCREEN CONFIGURATION
@@ -32,6 +35,39 @@ export interface LoginFeatureFlags {
   /** Small "no account? contact your admin" line under the submit button. */
   supportFootnote: boolean;
   /**
+   * Preview build: let people through the door while auth is a stub.
+   *
+   * It only does anything while `authBackendConnected` in lib/auth.ts is
+   * false, so it turns ITSELF off the day the backend lands — there is no
+   * second flag to remember, and no way for the screen to claim it is
+   * connected when it is not.
+   *
+   * While it is active the card carries a standing warning chip and the submit
+   * becomes "Continue to console", which goes straight to routes.afterSignIn.
+   * The alternative is what this replaced: the only outcome the screen could
+   * produce was a failure, on the one page every viewer sees first.
+   *
+   * Set to false if you would rather the preview refuse entry entirely.
+   */
+  previewFallback: boolean;
+  /**
+   * The role switch on the preview card.
+   *
+   * The product has three fronts — the agency console at /admin, the dev
+   * workspace at /dev and the client portal at /portal — and until auth is
+   * real there is nothing on a login form that can tell them apart. Typed
+   * credentials are not checked, so without this control every visitor lands
+   * in the console and the other two are reachable only by typing the URL.
+   *
+   * It rides on `previewFallback`, so it turns itself off the day
+   * `authBackendConnected` flips to true. At that point the role comes from
+   * the session and the landing route comes from `navigation.roleHome` — see
+   * homeFor() in lib/session.ts, which is already what this switch calls.
+   *
+   * Set false to keep the bypass but always enter as an admin.
+   */
+  previewRoleSwitch: boolean;
+  /**
    * The two background layers on the brand panel. Independent of each other —
    * either can be switched off without touching the other.
    *
@@ -47,9 +83,23 @@ export interface LoginFeatureFlags {
 
 /** Every URL the page can navigate to. Keep them relative. */
 export interface LoginRoutes {
+  /**
+   * The sign-in screen itself.
+   *
+   * Declared here because four other places navigate TO it — the root
+   * redirect, the sidebar's Log Out, and the portal's and rep's "sign in
+   * again" states. It was the string "/login" in every one of them.
+   */
+  login: string;
   /** Target of the "Forgot password?" link. Build this route when you need it. */
   forgotPassword: string;
-  /** Where a successful sign-in sends the user. */
+  /**
+   * Where a successful sign-in sends the user.
+   *
+   * TODO(backend): this is one fixed route, but each role has its own home.
+   * Once the session carries a role, look the landing route up in
+   * `navigation.roleHome` (config/navigation.ts) instead of using this.
+   */
   afterSignIn: string;
   /** Footer privacy link. */
   privacy: string;
@@ -66,13 +116,12 @@ export interface LoginValidation {
   emailPattern: RegExp;
 }
 
-/** A logo file in /public plus its intrinsic size, for next/image. */
-export interface LoginBrandAsset {
-  src: string;
-  width: number;
-  height: number;
-  alt: string;
-}
+/**
+ * Brand artwork moved to config/brand.ts, because the console sidebar needs the
+ * logo too and should not import the login config to get it. Re-exported here
+ * so anything already importing it from this file keeps working.
+ */
+export type { BrandAsset as LoginBrandAsset } from "@/config/brand";
 
 /**
  * How a chart watermark keeps moving. Both loops run forever, not once on load.
@@ -149,14 +198,8 @@ export interface LoginConfig {
   routes: LoginRoutes;
   validation: LoginValidation;
   area: LoginAreaConfig;
-  brand: {
-    /** Full horizontal lockup: horse mark + "stallion advertising". */
-    lockup: LoginBrandAsset;
-    /** Horse mark on its own, used as the oversized background watermark. */
-    mark: LoginBrandAsset;
-    /** Product name shown next to the lockup in the panel header. */
-    productName: string;
-  };
+  /** Shared agency artwork + product name. Edit config/brand.ts, not here. */
+  brand: BrandConfig;
   content: {
     /** ---- Left brand panel ---- */
     eyebrow: string;
@@ -184,6 +227,43 @@ export interface LoginConfig {
     rememberLabel: string;
     submitLabel: string;
     submitPendingLabel: string;
+    /** ---- Preview build (features.previewFallback) ---- */
+    /** Standing chip on the card. Keep it short — it sits beside the kicker. */
+    previewChipLabel: string;
+    /** Tooltip on the chip. Say what is and is not real. */
+    previewChipTooltip: string;
+    /**
+     * Replaces submitLabel while the preview bypass is active AND the role
+     * switch is off. With the switch on, the label comes from the chosen
+     * role's entry in `previewRoles` — the button has to name where it is
+     * about to go, and "Continue to console" above a switch set to Client is
+     * the button contradicting the control directly above it.
+     */
+    previewSubmitLabel: string;
+    /** One line under the submit, explaining why no credentials are needed. */
+    previewHint: string;
+    /** ---- Role switch (features.previewRoleSwitch) ---- */
+    /** Micro-label above the switch. */
+    previewRoleLabel: string;
+    /** One line under it, saying what each option actually opens. */
+    previewRoleHint: string;
+    /** Accessible name for the radio group. */
+    previewRoleGroupLabel: string;
+    /**
+     * Which fronts the switch offers, in order.
+     *
+     * An array rather than one string per role: the roles are a list, and a
+     * list is what you edit when a new front appears. All four are offered now
+     * that sales has a workspace of its own; remove an entry to take a front
+     * out of the preview without touching the component.
+     */
+    previewRoles: Array<{
+      role: Role;
+      /** Label on the segment. One word where possible — three sit in a row. */
+      label: string;
+      /** Submit-button label while this role is chosen. Name the destination. */
+      submitLabel: string;
+    }>;
     supportFootnote: string;
     supportLinkLabel: string;
     /** ---- Footer ---- */
@@ -207,13 +287,16 @@ export const loginConfig: LoginConfig = {
     rememberMe: true,
     forgotPassword: true,
     supportFootnote: false,
+    previewFallback: true,
+    previewRoleSwitch: true,
     logoWatermark: false,
     areaWatermark: true,
   },
 
   routes: {
+    login: "/login",
     forgotPassword: "/forgot-password",
-    afterSignIn: "/dashboard",
+    afterSignIn: "/admin",
     privacy: "/privacy",
   },
 
@@ -247,21 +330,7 @@ export const loginConfig: LoginConfig = {
     },
   },
 
-  brand: {
-    lockup: {
-      src: "/brand/stallion-logo.png",
-      width: 1255,
-      height: 485,
-      alt: "Stallion Advertising",
-    },
-    mark: {
-      src: "/brand/stallion-mark.png",
-      width: 286,
-      height: 485,
-      alt: "",
-    },
-    productName: "CRM",
-  },
+  brand: brandConfig,
 
   content: {
     eyebrow: "Agency operations",
@@ -287,6 +356,22 @@ export const loginConfig: LoginConfig = {
     rememberLabel: "Keep me signed in",
     submitLabel: "Log in",
     submitPendingLabel: "Verifying",
+
+    previewChipLabel: "Preview build",
+    previewChipTooltip:
+      "Authentication is not connected yet. Nothing is checked and no session is created — this door opens for anyone.",
+    previewSubmitLabel: "Continue to console",
+    previewHint: "No credentials needed while auth is disconnected.",
+    previewRoleLabel: "Continue as",
+    previewRoleHint:
+      "Admin runs the agency, Sales works the pipeline, Dev delivers the work, Client sees their project.",
+    previewRoleGroupLabel: "Choose which side of the product to open",
+    previewRoles: [
+      { role: "admin", label: "Admin", submitLabel: "Continue to console" },
+      { role: "sales", label: "Sales", submitLabel: "Continue to my pipeline" },
+      { role: "dev", label: "Dev", submitLabel: "Continue to workspace" },
+      { role: "client", label: "Client", submitLabel: "Continue to portal" },
+    ],
     supportFootnote: "No account yet?",
     supportLinkLabel: "Ask your administrator",
 

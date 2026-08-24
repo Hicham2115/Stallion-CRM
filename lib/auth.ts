@@ -20,6 +20,18 @@
  */
 const AUTH_BACKEND_CONNECTED = false;
 
+/**
+ * Whether sign-in can actually succeed, exposed so the UI can tell the truth
+ * about itself.
+ *
+ * `/login` reads this to decide whether to run in preview mode — see
+ * `features.previewFallback` in config/login.ts. Deriving it from the same
+ * constant the stubs check means the screen cannot claim to be connected while
+ * the functions below are still stubs, and nobody has to remember to flip a
+ * second flag on the day the backend lands.
+ */
+export const authBackendConnected = AUTH_BACKEND_CONNECTED;
+
 export interface SignInCredentials {
   email: string;
   password: string;
@@ -52,10 +64,19 @@ export async function signInWithPassword(
 ): Promise<SignInResult> {
   if (!AUTH_BACKEND_CONNECTED) {
     await delay(700);
+
+    // The developer instruction goes to the console, where its audience is.
+    // It used to be the `message` — so the only thing this screen could
+    // produce was a file path and a function name, shown to whoever was
+    // looking at the product. A user-facing string names what the person can
+    // do next; it never names a symbol they cannot open.
+    console.warn(
+      "[auth] AUTH_BACKEND_CONNECTED is false — implement signInWithPassword() in lib/auth.ts.",
+    );
+
     return {
       ok: false,
-      message:
-        "Auth backend is not connected yet. Wire up signInWithPassword() in lib/auth.ts.",
+      message: "Sign-in is not available in this preview build.",
     };
   }
 
@@ -95,9 +116,14 @@ export async function signInWithPassword(
 export async function signInWithGoogle(): Promise<void> {
   if (!AUTH_BACKEND_CONNECTED) {
     await delay(500);
-    throw new Error(
-      "Google sign-in is not connected yet. Wire up signInWithGoogle() in lib/auth.ts.",
+
+    // Same rule as signInWithPassword: the instruction is for the developer,
+    // the thrown message is for the person looking at the screen.
+    console.warn(
+      "[auth] AUTH_BACKEND_CONNECTED is false — implement signInWithGoogle() in lib/auth.ts.",
     );
+
+    throw new Error("Google sign-in is not available in this preview build.");
   }
 
   // TODO: kick off your OAuth flow, e.g.

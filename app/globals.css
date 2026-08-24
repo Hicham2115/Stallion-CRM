@@ -163,6 +163,11 @@
   --color-ink-muted: var(--ink-muted);
   --color-ink-faint: var(--ink-faint);
 
+  /* Status -> text-status-good, border-status-warning, bg-status-critical ... */
+  --color-status-good: var(--status-good);
+  --color-status-warning: var(--status-warning);
+  --color-status-critical: var(--status-critical);
+
   /* Hairlines -> border-hairline / border-hairline-strong */
   --color-hairline: var(--deck-hairline);
   --color-hairline-strong: var(--deck-hairline-strong);
@@ -184,8 +189,20 @@
   /* --- Text ramp --------------------------------------------------------- */
   --ink: #ecefe8; /* headings + input text                                   */
   --ink-soft: #a6ada0; /* body copy                                          */
-  --ink-muted: #757c72; /* labels, helper text                               */
-  --ink-faint: #454a43; /* rulers, ticks, decorative only                    */
+  --ink-muted: #7d857a; /* labels, helper text                               */
+  --ink-faint: #454a43; /* rulers + ticks ONLY, never readable text                    */
+
+  /* --- Status palette -----------------------------------------------------
+     Reserved. Never reuse these for a chart series or as decoration. Every
+     status that uses them also ships an icon and a text label, so meaning is
+     never carried by colour alone — which is invisible to a colourblind
+     reader, in greyscale, and in the print stylesheet.
+
+     Brand-level rather than console-level: the login form's invalid fields
+     and caps-lock warning draw from exactly these. */
+  --status-good: #9ae65c;
+  --status-warning: #f0a63a;
+  --status-critical: #f87171;
 
   /* --- Lines ------------------------------------------------------------- */
   --deck-hairline: rgb(255 255 255 / 0.07);
@@ -220,6 +237,68 @@
 }
 
 /* ==========================================================================
+   THE SHADCN BRIDGE
+   --------------------------------------------------------------------------
+   37 shadcn components are installed, and they paint with the shadcn token
+   set, which ships LIGHT in :root. Rather than overriding colours component
+   by component — which would have to be redone on every `shadcn add` — those
+   tokens are remapped to deck values once, here.
+
+   Consequence: <Button>, <Dialog>, <Table>, <Badge>, <Select> and the rest
+   wear Command Deck automatically, and they stay upgradeable because none of
+   their own files were edited.
+
+   WHY THIS IS DOCUMENT-LEVEL AND NOT SCOPED TO THE CONSOLE.
+   It used to sit inside the [data-surface="console"] block. Every popup that
+   renders through a PORTAL — Select, DropdownMenu, Popover, Tooltip, Command,
+   HoverCard — is attached to <body>, OUTSIDE that element, so it inherited
+   none of the remap and fell back to the light defaults. The result was
+   near-black text on a near-black popup and a white highlight bar on the
+   selected row: the Reports date range and the Add Client source list were
+   both unreadable.
+
+   Portalled content has no surface ancestor, so the only scope that can
+   reach it is the document. This is safe precisely because the product is
+   dark only — there is no light mode for these values to fight with.
+
+   `.dark` is in the selector because the console shell carries
+   className="dark" for the `dark:` variants baked into those components.
+   Custom properties inherit from the nearest ancestor that sets them, so
+   without it the shadcn `.dark` block above would shadow this one inside the
+   console and the console would go back to shadcn grey.
+   ========================================================================== */
+
+:root,
+.dark {
+  --background: var(--deck-void);
+  --foreground: var(--ink);
+  --card: var(--deck-surface, #0e0f0e);
+  --card-foreground: var(--ink);
+  --popover: #141614;
+  --popover-foreground: var(--ink);
+  --primary: var(--brand-lime);
+  --primary-foreground: #0a1000; /* near-black text ON lime                  */
+  --secondary: rgb(255 255 255 / 0.06);
+  --secondary-foreground: var(--ink);
+  --muted: rgb(255 255 255 / 0.045);
+  --muted-foreground: var(--ink-muted);
+  --accent: rgb(255 255 255 / 0.06);
+  --accent-foreground: var(--ink);
+  --destructive: var(--status-critical);
+  --border: var(--deck-hairline);
+  --input: var(--deck-hairline-strong);
+  --ring: var(--brand-lime);
+  --radius: 0.75rem;
+}
+
+/* Portalled popups sit on <body>, which has no deck background of its own, so
+   tell the browser to render their native bits (scrollbars, autofill, form
+   controls) dark rather than light. */
+:root {
+  color-scheme: dark;
+}
+
+/* ==========================================================================
    ATMOSPHERE UTILITIES
 
    SLOT MAP — read this before adding another atmosphere layer.
@@ -232,7 +311,12 @@
      .deck-grain     ::after
      .deck-glow      the element's own background-image   \ mutually exclusive
      .deck-spot      the element's own background-image   / on one element
-     .deck-vignette  the element's own inset box-shadow
+     .deck-vignette  the element's own inset box-shadow   \ mutually exclusive
+     .deck-lift      the element's own box-shadow          | all three write
+     .deck-inset     the element's own box-shadow         / box-shadow
+     .deck-ruler     the element's own background-image  (see CONSOLE LAYER)
+     .deck-nums      no slot — font-variant-numeric only
+     .deck-scroll    no slot — scrollbar properties only
 
    None of them affect layout. The two pseudo-element layers need the host to
    be position:relative; the other three work anywhere. Because .deck-glow and
@@ -564,4 +648,283 @@ html:has(main[data-surface="deck"]) {
 .deck-mark-edge {
   -webkit-mask-image: radial-gradient(74% 78% at 72% 46%, #000 0%, #000 20%, transparent 76%);
   mask-image: radial-gradient(74% 78% at 72% 46%, #000 0%, #000 20%, transparent 76%);
+}
+
+/* ==========================================================================
+   CONSOLE LAYER
+   --------------------------------------------------------------------------
+   Everything below powers the signed-in admin console (/admin and friends).
+   It is additive: /login is not touched by any of it.
+
+   WHY IT IS SCOPED, NOT GLOBAL
+   /login is a lobby — cinematic, low density, seen once. The console is a
+   cockpit — dense, scanned all day. They want the same materials at very
+   different intensities, so every knob below is scoped to the surface
+   attribute instead of overwriting the brand defaults. Same pattern as the
+   `html:has(main[data-surface="deck"])` rule further up.
+
+   To retune the console mood, edit the knobs in this block only.
+   ========================================================================== */
+
+@theme inline {
+  /* Console surfaces -> bg-deck-rail, bg-deck-bar, bg-deck-surface */
+  --color-deck-rail: var(--deck-rail);
+  --color-deck-bar: var(--deck-bar);
+  --color-deck-surface: var(--deck-surface);
+  --color-deck-row: var(--deck-row);
+}
+
+/* The compound `.dark[data-surface="console"]` selector is deliberate. The
+   shadcn `.dark` block near the top of this file has the same specificity as a
+   bare attribute selector, so a plain [data-surface="console"] would only win
+   by being later in the file — which is true today but silently breaks the
+   first time someone reorders this stylesheet. The compound pins it. */
+[data-surface="console"],
+.dark[data-surface="console"] {
+  /* --- Atmosphere, dialled down for a working screen -------------------
+     The login values are roughly double these. Film grain and a lime bloom
+     behind a data table is noise, not atmosphere. Set any one to 0 to switch
+     that layer off entirely. */
+  --deck-grid-size: 40px;
+  --deck-grid-rule: rgb(255 255 255 / 0.022);
+  --deck-grain-opacity: 0.022;
+  --deck-vignette-strength: 0.28;
+  --deck-glow-strength: 0.06;
+
+  /* The --ink-muted contrast fix that used to sit here is now the brand
+     default in :root, because it was never a console-only problem: #757c72
+     measured 4.40:1 on the login CARD (#101110) — the LIGHTEST content
+     surface in the product — so the old note here had it backwards. One
+     value now clears 4.5:1 on every deck surface, login included. */
+
+  /* --- Console surfaces (darkest -> lightest) --------------------------- */
+  --deck-rail: #080908; /* sidebar                                          */
+  --deck-bar: #0a0b0a; /* topbar                                            */
+  --deck-surface: #0e0f0e; /* panels and cards                              */
+  --deck-row: rgb(255 255 255 / 0.025); /* table row hover                  */
+
+  /* --- Pipeline stage ramp ---------------------------------------------
+     A monotonic sequential ramp, dark -> bright, so "further along the
+     pipeline" reads as "brighter" with no exceptions. Referenced by tone
+     index from config/pipeline.ts — never hard-coded in a component.
+
+     --stage-neutral is a different hue family on purpose: Lost is not a
+     dimmer version of winning, it is a different KIND of outcome, so it must
+     not sit anywhere on the lime ramp. */
+  --stage-1: #3f5c14;
+  --stage-2: #567c17;
+  --stage-3: #6f9c19;
+  --stage-4: #93c81a;
+  --stage-5: #bafc0c;
+  --stage-neutral: #4a4f47;
+
+  /* The status palette used to be declared here, console-only. It is now a
+     brand token in :root — /login needs an error red and a caps-lock amber
+     too, and a token that exists on one surface and not the other is how the
+     same meaning ends up with two different colours. */
+
+  /* The shadcn bridge used to live here, scoped to the console. It is now a
+     document-level block above — see THE SHADCN BRIDGE. Scoping it to
+     this element was the bug behind unreadable Select and dropdown popups:
+     those render in a PORTAL attached to <body>, outside this subtree, so
+     they never inherited the remap. */
+}
+
+/* Paint the document root so overscroll never flashes white, and tell the
+   browser to render native widgets (scrollbars, form controls) dark. */
+html:has([data-surface="console"]) {
+  background-color: var(--deck-void);
+  color-scheme: dark;
+}
+
+/* ==========================================================================
+   CONSOLE UTILITIES
+   Slots are declared in the SLOT MAP above — keep it true when adding here.
+   ========================================================================== */
+
+/* Panel elevation. The deliberate opposite of .deck-lift: no cast shadow, so
+   the panel sits IN the surface rather than floating above it. Ten floating
+   cards on one screen reads as chaos; .deck-lift stays reserved for things
+   that genuinely are above the page (menus, dialogs, drag ghosts). */
+.deck-inset {
+  box-shadow:
+    0 0 0 1px rgb(0 0 0 / 0.5),
+    inset 0 1px 0 0 rgb(255 255 255 / 0.045);
+}
+
+/* Tabular figures. Every number in the console wears this: without it, columns
+   of dials/appointments/conversions do not line up vertically, because the
+   default proportional digits are different widths. */
+.deck-nums {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* The measurement ruler from the login footer, as a reusable surface. Used
+   under the KPI cluster so the four gauges read as one instrument, not four
+   unrelated cards. Fades out to the right so it never ends on a hard edge. */
+.deck-ruler {
+  background-image: repeating-linear-gradient(
+    to right,
+    var(--ink-faint) 0 1px,
+    transparent 1px 28px
+  );
+  /* Where the ruling fades out. The login footer wants a short ruler (78%);
+     the dashboard's KPI cluster wants it to run almost the full width (92%,
+     the default). Set --deck-ruler-fade on the element to change it. */
+  -webkit-mask-image: linear-gradient(
+    to right,
+    #000,
+    transparent var(--deck-ruler-fade, 92%)
+  );
+  mask-image: linear-gradient(
+    to right,
+    #000,
+    transparent var(--deck-ruler-fade, 92%)
+  );
+}
+
+/* Thin dark scrollbars for the rail, kanban columns and table bodies. The
+   default Windows scrollbar is a light slab that ruins a dark surface. */
+.deck-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--deck-hairline-strong) transparent;
+}
+.deck-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.deck-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.deck-scroll::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background-color: var(--deck-hairline-strong);
+}
+.deck-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: rgb(255 255 255 / 0.22);
+}
+
+/* Page-load choreography, shortened. The login reveal is 0.7s because it is
+   seen once and should feel cinematic. This screen is opened dozens of times a
+   day, and a screen that performs every time becomes an obstacle. */
+[data-surface="console"] .reveal {
+  animation-duration: 0.45s;
+}
+
+/* Count-up on figures is decoration, so it is skipped entirely when the OS
+   asks for reduced motion. The hook in lib/use-count-up.ts checks the same
+   preference; this is the CSS-side backstop. */
+@media (prefers-reduced-motion: reduce) {
+  [data-surface="console"] .reveal {
+    opacity: 1;
+    animation: none;
+  }
+}
+
+/* ==========================================================================
+   PRINT
+   --------------------------------------------------------------------------
+   What "Export PDF" on the Reports screen actually does. There is no PDF
+   library in this project and there should not be one: the browser already has
+   a competent PDF writer behind window.print(), and shipping ~300KB of
+   JavaScript to reimplement it badly is a poor trade.
+
+   What that leaves is a real design problem. The console is near-black, and
+   printing it as-is empties a colour cartridge to produce a grey page with
+   unreadable hairlines. So print gets its own treatment: ink on paper, chrome
+   removed, and every panel flattened to a rule-and-white-space layout.
+
+   Anything that should not print carries data-print="hide".
+   ========================================================================== */
+
+@media print {
+  /* Invert the whole surface. The console's tokens are remapped rather than
+     overridden per-element, exactly like the shadcn bridge above, so every
+     component follows without needing its own print rule. */
+  [data-surface="console"],
+  .dark[data-surface="console"] {
+    --deck-void: #ffffff;
+    --deck-rail: #ffffff;
+    --deck-bar: #ffffff;
+    --deck-surface: #ffffff;
+    --deck-card: #ffffff;
+    --deck-row: transparent;
+
+    --ink: #111111;
+    --ink-soft: #333333;
+    --ink-muted: #555555;
+    --ink-faint: #888888;
+
+    --deck-hairline: rgb(0 0 0 / 0.22);
+    --deck-hairline-strong: rgb(0 0 0 / 0.35);
+
+    --background: #ffffff;
+    --foreground: #111111;
+    --card: #ffffff;
+    --card-foreground: #111111;
+    --muted-foreground: #555555;
+    --border: rgb(0 0 0 / 0.22);
+
+    /* The lime is invisible on white — it measures about 1.2:1. Bars and
+       accents move to a dark ink so they still read as marks on the page. */
+    --brand-lime: #2f4f0a;
+    --stage-1: #d8d8d8;
+    --stage-2: #b4b4b4;
+    --stage-3: #8e8e8e;
+    --stage-4: #5f5f5f;
+    --stage-5: #2f2f2f;
+    --stage-neutral: #cccccc;
+
+    /* Atmosphere is meaningless on paper and expensive to print. */
+    --deck-grain-opacity: 0;
+    --deck-grid-rule: transparent;
+    --deck-glow-strength: 0;
+    --deck-vignette-strength: 0;
+  }
+
+  /* Navigation, controls and anything else that cannot be acted on in print. */
+  [data-print="hide"] {
+    display: none !important;
+  }
+
+  /* Panels become ruled blocks: no shadow to render as a grey smear, and no
+     rounded corner, which reads as a screenshot rather than a document. */
+  .deck-inset,
+  .deck-lift {
+    box-shadow: none !important;
+    border: 1px solid rgb(0 0 0 / 0.25) !important;
+    border-radius: 0 !important;
+  }
+
+  /* Never split a panel across a page break — a KPI card with its label on one
+     sheet and its figure on the next is worse than a shorter page. */
+  .deck-inset,
+  section {
+    break-inside: avoid;
+  }
+
+  /* Reveal animations must not leave elements at opacity 0 on paper: a print
+     can happen before the animation has run, which would produce blank pages. */
+  .reveal,
+  .reveal-card {
+    opacity: 1 !important;
+    animation: none !important;
+  }
+
+  /* The main scroll region must not clip to the viewport, or only the first
+     screenful prints. */
+  #console-main {
+    overflow: visible !important;
+    padding: 0 !important;
+  }
+
+  html,
+  body {
+    background: #ffffff !important;
+  }
+
+  @page {
+    margin: 16mm;
+  }
 }
