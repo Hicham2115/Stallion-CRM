@@ -5,6 +5,7 @@ import { ChevronRight, Mail, Phone, Trash2 } from "lucide-react";
 
 import { SourceBadge } from "@/components/deck/source-badge";
 import { Button } from "@/components/ui/button";
+import { adminConfig } from "@/config/admin";
 import { clientsConfig } from "@/config/clients";
 import { initialsOf } from "@/lib/format";
 import type { Lead } from "@/lib/types";
@@ -28,10 +29,23 @@ export function ClientCard({
   client,
   repName,
   onDelete,
+  href,
 }: {
   client: Lead;
+  /** Caption under the name. On a rep's own list this is always themselves. */
   repName: string;
-  onDelete: (client: Lead) => void;
+  /**
+   * Opens the confirmation dialog. OMIT IT to render a card with no delete
+   * control at all — which is what the rep workspace does, because a rep may
+   * work a client but not remove one (see config/roles.ts). A disabled bin
+   * icon would be a control that exists only to refuse.
+   */
+  onDelete?: (client: Lead) => void;
+  /**
+   * Where the card leads. Defaults to the admin lead page; the rep workspace
+   * passes its own route, since /admin is a URL a rep cannot open.
+   */
+  href?: string;
 }) {
   return (
     <article className="relative rounded-xl border border-hairline bg-white/[0.02] p-4 transition-colors hover:bg-white/[0.04]">
@@ -48,7 +62,7 @@ export function ClientCard({
               hit area to the whole card without nesting the delete button
               inside a link — the same reason the table keeps them apart. */}
           <Link
-            href={`/admin/clients/${client.id}`}
+            href={href ?? adminConfig.routes.client(client.id)}
             className="rounded outline-none after:absolute after:inset-0 after:content-[''] focus-visible:ring-2 focus-visible:ring-brand/60"
           >
             <h3 className="truncate text-[0.9375rem] font-medium text-ink">
@@ -92,15 +106,17 @@ export function ClientCard({
 
         <SourceBadge source={client.source} className="ml-auto" />
 
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          aria-label={`${content.deleteLabel} — ${client.name}`}
-          onClick={() => onDelete(client)}
-          className="text-ink-muted hover:text-destructive"
-        >
-          <Trash2 aria-hidden />
-        </Button>
+        {onDelete && (
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label={`${content.deleteLabel} — ${client.name}`}
+            onClick={() => onDelete(client)}
+            className="text-ink-muted hover:text-destructive"
+          >
+            <Trash2 aria-hidden />
+          </Button>
+        )}
       </div>
 
       {client.notes[0] && (

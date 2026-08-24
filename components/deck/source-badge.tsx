@@ -14,6 +14,16 @@ import { cn } from "@/lib/utils";
  * exists for things that genuinely have a good/bad reading. A lead source does
  * not — a walk-in is not worse than a referral, just rarer.
  */
+/**
+ * What an empty source reads as.
+ *
+ * A record can genuinely have none: the dev workspace can start a project
+ * without any sales history, and `source` is a SALES field a developer has no
+ * business guessing at. Rendering `""` produced a bare pill with nothing in it,
+ * which reads as a rendering bug rather than as an absence.
+ */
+const UNKNOWN_SOURCE = "Not recorded";
+
 export function SourceBadge({
   source,
   className,
@@ -21,14 +31,17 @@ export function SourceBadge({
   source: string;
   className?: string;
 }) {
+  const known = source.trim().length > 0;
+
   return (
     <span
       className={cn(
-        "inline-flex items-center whitespace-nowrap rounded-full border border-hairline bg-white/[0.04] px-2.5 py-0.5 text-[0.75rem] text-ink-soft",
+        "inline-flex items-center whitespace-nowrap rounded-full border border-hairline bg-white/[0.04] px-2.5 py-0.5 text-[0.75rem]",
+        known ? "text-ink-soft" : "italic text-ink-muted",
         className,
       )}
     >
-      {source}
+      {known ? source : UNKNOWN_SOURCE}
     </span>
   );
 }

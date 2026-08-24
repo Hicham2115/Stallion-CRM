@@ -2,14 +2,17 @@
 
 import Link from "next/link";
 import { useState, type CSSProperties } from "react";
-import { LogOut, PanelLeft } from "lucide-react";
+import { PanelLeft } from "lucide-react";
 
 import { StallionLogo } from "@/components/brand/stallion-logo";
 import { ConsoleNav } from "@/components/console/console-nav";
 import { SidebarStat } from "@/components/console/sidebar-stat";
+import { SignOutLink } from "@/components/console/sign-out-link";
 import { brandConfig } from "@/config/brand";
 import { consoleConfig } from "@/config/console";
-import { navigation, type Role } from "@/config/navigation";
+import { type Role } from "@/config/navigation";
+import { roleDefinitions } from "@/config/roles";
+import { homeFor } from "@/lib/session";
 import { cn } from "@/lib/utils";
 
 const { features, layout, content } = consoleConfig;
@@ -27,6 +30,21 @@ const { features, layout, content } = consoleConfig;
  *
  * The rail is one of the two places the blueprint grid survives into the
  * console. Texture belongs on chrome, never behind data.
+ *
+ * ── IT IS EXACTLY ONE VIEWPORT TALL, AND IT DOES NOT SCROLL ────────────────
+ * `sticky top-0 h-dvh self-start`. It used to be a plain flex child of a
+ * `min-h-dvh` shell, which stretched it to the height of the PAGE — so on a
+ * long screen the Log Out control sat below the fold and you had to scroll the
+ * content just to sign out. Worse, it moved: the footer's position depended on
+ * how much content the page happened to have.
+ *
+ * `self-start` is the load-bearing half. Without it the flex container's
+ * default `align-items: stretch` forces the rail to full container height and
+ * `h-dvh` has nothing to do, so sticky never engages.
+ *
+ * The rail itself is `overflow-hidden` and only the NAV REGION scrolls. That
+ * keeps the logo pinned at the top and the stat, collapse toggle and Log Out
+ * pinned at the bottom, whatever the window height — which is the whole point.
  */
 export function ConsoleSidebar({
   role,
@@ -37,13 +55,33 @@ export function ConsoleSidebar({
 }) {
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
 
+  /**
+   * The stat card is a SALES figure — the team's dial average for an admin,
+   * the rep's own dials today for a rep (SidebarStat picks which).
+   *
+   * AN ALLOW-LIST, for the same reason the route guards are. It first read
+   * `role !== "client"`, which was correct with three roles and quietly wrong
+   * the moment a fourth arrived: the dev team started seeing the sales team's
+   * dial average in their sidebar. It is not secret from them, but it is not
+   * theirs and it is not useful to them — a delivery screen carrying a sales
+   * KPI is just noise that has to be learned and then ignored.
+   *
+   * Naming who it IS for means a new role gets nothing by default and has to
+   * be added deliberately.
+   */
+  // Declared once, in config/roles.ts, next to that role's purpose and
+  // permissions. `SidebarStat` reads the same field to decide WHICH figure.
+  const showStat =
+    features.sidebarStat && roleDefinitions[role].sidebarStat !== "none";
+
   function toggle() {
     const next = !collapsed;
     setCollapsed(next);
     // Written straight to the cookie rather than through a server action: it is
     // a display preference, so a round trip would add latency to a toggle that
-    // should feel instant. One year, and scoped to the whole app.
-    document.cookie = `${layout.sidebarCookie}=${next ? "1" : "0"}; path=/; max-age=31536000; samesite=lax`;
+    // should feel instant. Lifetime and name both come from config.
+    const maxAge = layout.sidebarCookieDays * 24 * 60 * 60;
+    document.cookie = `${layout.sidebarCookie}=${next ? "1" : "0"}; path=/; max-age=${maxAge}; samesite=lax`;
   }
 
   return (
@@ -59,7 +97,7 @@ export function ConsoleSidebar({
             : layout.sidebarWidth,
         } as CSSProperties
       }
-      className="deck-grid deck-scroll relative hidden shrink-0 flex-col overflow-y-auto border-r border-hairline bg-deck-rail transition-[width] duration-300 ease-out lg:flex"
+      className="deck-grid sticky top-0 relative hidden h-dvh shrink-0 flex-col self-start overflow-hidden border-r border-hairline bg-deck-rail transition-[width] duration-300 ease-out lg:flex"
     >
       {/* ---------------------------------------------------------------- */}
       {/* Header: logo lockup + product name                                */}
@@ -71,7 +109,7 @@ export function ConsoleSidebar({
         )}
       >
         <Link
-          href={navigation.roleHome[role] ?? "/admin"}
+          href={homeFor(role)}
           className="flex items-center gap-3 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60"
         >
           <StallionLogo
@@ -90,15 +128,31 @@ export function ConsoleSidebar({
       {/* ---------------------------------------------------------------- */}
       {/* Navigation                                                        */}
       {/* ---------------------------------------------------------------- */}
-      <div className={cn("relative z-10 flex-1 px-3 pt-2", collapsed && "px-2")}>
+      {/* The only scrolling region. `min-h-0` is required: a flex child
+          defaults to `min-height: auto`, which refuses to shrink below its
+          content and would push the footer off the bottom instead of
+          scrolling. */}
+      <div
+        className={cn(
+          "deck-scroll relative z-10 min-h-0 flex-1 overflow-y-auto px-3 pt-2",
+          collapsed && "px-2",
+        )}
+      >
         <ConsoleNav role={role} collapsed={collapsed} />
       </div>
 
       {/* ---------------------------------------------------------------- */}
       {/* Footer: stat readout, collapse toggle, sign out                   */}
       {/* ---------------------------------------------------------------- */}
-      <div className={cn("relative z-10 mt-auto flex flex-col gap-2 p-3", collapsed && "p-2")}>
-        {features.sidebarStat && !collapsed && <SidebarStat />}
+      {/* Pinned to the bottom of the VIEWPORT, not of the page. `shrink-0` so a
+          short window scrolls the nav above rather than crushing these. */}
+      <div
+        className={cn(
+          "relative z-10 flex shrink-0 flex-col gap-2 p-3",
+          collapsed && "p-2",
+        )}
+      >
+        {showStat && !collapsed && <SidebarStat />}
 
         {features.collapsibleSidebar && (
           <button
@@ -123,19 +177,10 @@ export function ConsoleSidebar({
           </button>
         )}
 
-        <Link
-          href={navigation.signOut.href}
-          className={cn(
-            "flex h-11 items-center gap-3 rounded-xl px-3 text-[0.9375rem] text-ink-soft transition-colors hover:bg-white/[0.045] hover:text-ink",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60 focus-visible:ring-offset-2 focus-visible:ring-offset-deck-rail",
-            collapsed && "justify-center px-0",
-          )}
-        >
-          <LogOut aria-hidden className="size-[1.15rem] shrink-0 text-ink-muted" />
-          <span className={cn(collapsed && "sr-only")}>
-            {navigation.signOut.label}
-          </span>
-        </Link>
+        {/* Clears the session cookie before leaving — see the note in
+            components/console/sign-out-link.tsx for why that matters the
+            moment there are two roles. */}
+        <SignOutLink collapsed={collapsed} />
       </div>
     </aside>
   );

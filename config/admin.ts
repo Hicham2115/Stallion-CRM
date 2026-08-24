@@ -110,7 +110,28 @@ export interface LeaderboardColumn {
   label: string;
 }
 
+/**
+ * Every route the agency console owns.
+ *
+ * The other three fronts (portal, dev, rep) each declare their own; this one
+ * did not, so `/admin/clients/${id}` was spelled out as a literal in the
+ * clients table, the kanban card and the lead not-found page. Three literals
+ * is three chances for a rename to leave a dead link — and the kanban card is
+ * SHARED with the rep workspace, where that literal was already wrong.
+ */
+export interface AdminRoutes {
+  home: string;
+  clients: string;
+  /** One lead. A function because the id is part of the path. */
+  client: (leadId: string) => string;
+  pipeline: string;
+  chat: string;
+  reports: string;
+  settings: string;
+}
+
 export interface AdminConfig {
+  routes: AdminRoutes;
   /**
    * Locale and currency for every formatted figure.
    *
@@ -118,6 +139,20 @@ export interface AdminConfig {
    * relying on the ambient system locale — the server and the browser can have
    * different locales, and that renders different strings for the same number,
    * which React reports as a hydration mismatch.
+   *
+   * ── WHY en-GB AND NOT en-MA ──────────────────────────────────────────────
+   * This was `en-MA`, which reads like the obviously right answer for a
+   * Moroccan agency and is wrong for exactly one thing: DATES. ICU resolves
+   * `en-MA` to US ordering, so a target date of 15 August formats as
+   * "Aug 15" — month first, which nobody in Morocco writes.
+   *
+   * It went unnoticed because nothing formatted a date until the dev workspace
+   * added target dates. Every other formatter is byte-identical between the
+   * two locales — currency "MAD 4,660", numbers "1,234,567", compact "453.2K"
+   * — so the switch changes dates and nothing else.
+   *
+   * If French or Arabic land (see PRODUCT.md), this becomes the fallback and
+   * the active locale comes from the user's language.
    */
   locale: string;
   currency: string;
@@ -156,7 +191,17 @@ export interface AdminConfig {
 }
 
 export const adminConfig: AdminConfig = {
-  locale: "en-MA",
+  routes: {
+    home: "/admin",
+    clients: "/admin/clients",
+    client: (leadId: string) => `/admin/clients/${leadId}`,
+    pipeline: "/admin/pipeline",
+    chat: "/admin/chat",
+    reports: "/admin/reports",
+    settings: "/admin/settings",
+  },
+
+  locale: "en-GB",
   currency: "MAD",
 
   dashboard: {

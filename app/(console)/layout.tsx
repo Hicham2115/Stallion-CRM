@@ -2,9 +2,11 @@ import { cookies } from "next/headers";
 
 import { ConsoleSidebar } from "@/components/console/console-sidebar";
 import { PageTitleProvider } from "@/components/console/page-title";
+import { SessionProvider } from "@/components/console/session-provider";
 import { ConsoleTopbar } from "@/components/console/console-topbar";
 import { Toaster } from "@/components/ui/sonner";
 import { consoleConfig } from "@/config/console";
+import { readSession } from "@/lib/session-server";
 import { CrmProvider } from "@/lib/store/crm-store";
 
 /**
@@ -17,6 +19,15 @@ import { CrmProvider } from "@/lib/store/crm-store";
  *  It is a ROUTE GROUP — the (console) folder does not appear in any URL, it
  *  just marks which routes get this chrome. /login sits outside it and is
  *  untouched.
+ *
+ *  TWO AUDIENCES, ONE SHELL. The agency console (/admin) and the client portal
+ *  (/portal) share this file. They are genuinely the same product — same rail,
+ *  same topbar, same panels — and the only thing that differs is WHICH nav
+ *  items and WHOSE name, both of which come from the session read below. A
+ *  second shell for the portal would be a second place for the chrome to drift.
+ *
+ *  Which routes each role may enter is enforced one level down, in
+ *  app/(console)/admin/layout.tsx and app/(console)/portal/layout.tsx.
  *
  *  Two attributes on the shell do a lot of work:
  *    data-surface="console"  applies the whole console token set (dialled-down
@@ -36,7 +47,13 @@ export default async function ConsoleLayout({
   const collapsed =
     cookieStore.get(consoleConfig.layout.sidebarCookie)?.value === "1";
 
+  // Who is asking. Same reasoning as the line above, and it matters more here:
+  // a client who saw the admin sidebar for one frame would have seen the names
+  // of the destinations they are not allowed into.
+  const session = await readSession();
+
   return (
+    <SessionProvider session={session}>
     <CrmProvider>
       {/* Lets a detail page put the record's name in the topbar. The six fixed
           screens keep taking their heading from config/navigation.ts. */}
@@ -54,10 +71,11 @@ export default async function ConsoleLayout({
           {consoleConfig.content.skipToContent}
         </a>
 
-        {/* Role comes from the mock session today.
-            TODO(backend): read it from the real session instead, and enforce
-            the same check on the server for every route under this group. */}
-        <ConsoleSidebar role="admin" defaultCollapsed={collapsed} />
+        {/* Role decides which nav items exist. It comes from the session,
+            which today is an unsigned cookie — see the warning block at the
+            top of lib/session.ts. Hiding a nav item is a courtesy; the
+            server-side check is the boundary. */}
+        <ConsoleSidebar role={session.role} defaultCollapsed={collapsed} />
 
         <div className="flex min-w-0 flex-1 flex-col">
           <ConsoleTopbar />
@@ -96,5 +114,6 @@ export default async function ConsoleLayout({
       </div>
       </PageTitleProvider>
     </CrmProvider>
+    </SessionProvider>
   );
 }

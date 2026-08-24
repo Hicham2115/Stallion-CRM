@@ -36,6 +36,8 @@ import type {
   LeadFile,
   Milestone,
   Note,
+  ProjectPreview,
+  ProjectUpdate,
   Rep,
 } from "@/lib/types";
 
@@ -91,6 +93,21 @@ const REP_SEED: Array<[string, number, number, number]> = [
   ["Imane Z.", 58, 14, 6],
 ];
 
+/**
+ * Dials made today, per rep.
+ *
+ * Derived from the all-time total rather than invented, so the two can never
+ * contradict each other — today's figure is always a plausible fraction of the
+ * career one. The `+ index` breaks the ties that plain division would produce
+ * and keeps the eight numbers distinct, which matters because a rep comparing
+ * their card to a colleague's should not see a suspiciously round pattern.
+ *
+ * TODO(backend): delete. A real system counts today's dated call records.
+ */
+function dialsTodayFor(dials: number, index: number): number {
+  return Math.max(1, Math.round(dials / 6) + (index % 3));
+}
+
 function buildReps(): Rep[] {
   return REP_SEED.map(([name, dials, appointments, conversions], index) => ({
     id: `rep-${index + 1}`,
@@ -99,6 +116,7 @@ function buildReps(): Rep[] {
     email: `${name.split(" ")[0].toLowerCase()}@stallionadvertising.ma`,
     role: "Sales Rep",
     dials,
+    dialsToday: dialsTodayFor(dials, index),
     appointments,
     conversions,
     active: true,
@@ -258,18 +276,220 @@ function buildActivity(leadIndex: number, stageId: string): ActivityEvent[] {
   return events;
 }
 
+/* --------------------------------------------------------------------------
+   Delivery — the half of a record the CLIENT sees in their own portal
+   --------------------------------------------------------------------------
+   Milestones, previews, the live link and the updates feed all hang off ONE
+   number: how many project stages this client has finished. Deriving them
+   together is what keeps the seed self-consistent — a client cannot end up
+   showing a live site while their Launch stage still reads "in progress", or
+   an update saying "you are live" on a project that is 40% done.
+   -------------------------------------------------------------------------- */
+
+/** The four stages of a delivery, in order. Client-facing wording. */
+const PROJECT_STAGES = ["Discovery & Brief", "Design", "Development", "Launch"];
+
+/**
+ * How many stages this client has COMPLETED, 0-4.
+ *
+ * The offset is not decoration. `leadIndex % 5` would give lead-1 zero
+ * completed stages, and lead-1 is the client the portal opens on
+ * (`portalConfig.demo.leadId`) — so the first thing anyone saw would be a
+ * project at 0% with no preview, no live link and no updates, which is the one
+ * state that demonstrates nothing. `+ 4` lands lead-1 on a fully delivered,
+ * launched project, exactly as the original design showed it, and the other
+ * thirteen clients still spread evenly across every other state.
+ *
+ * The previous formula, `(leadIndex % 4) + 1`, could never reach 100% at all:
+ * it always left the last stage "in progress", so no client in the database
+ * was ever finished and the live-site card would have been dead everywhere.
+ */
+function completedStages(leadIndex: number): number {
+  return (leadIndex + 4) % (PROJECT_STAGES.length + 1);
+}
+
+/** "Rif Organics" -> "rif-organics". Deterministic, so the demo URLs come out
+ *  identical on the server and on the client. */
+function slugify(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+/**
+ * A fixed date to hang the seed's target dates on.
+ *
+ * A LITERAL, not `new Date()`. Seed data is generated during the server render
+ * AND again during the first client render; deriving dates from the clock
+ * means the two can straddle midnight and produce different strings, which
+ * React reports as a hydration mismatch — the exact failure the note at the
+ * top of lib/types.ts describes. A frozen anchor cannot drift.
+ *
+ * TODO(backend): delete with the rest of the mock. Real target dates are typed
+ * in by a developer in the workspace and stored as they were entered.
+ */
+const SEED_TODAY = new Date("2026-08-21T00:00:00Z");
+
+/** `SEED_TODAY + days`, as "YYYY-MM-DD". */
+function seedDate(days: number): string {
+  const date = new Date(SEED_TODAY);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
 /** Delivery milestones. Only paying clients have a project to deliver. */
 function buildMilestones(leadIndex: number, isClient: boolean): Milestone[] {
   if (!isClient) return [];
-  const labels = ["Discovery & Brief", "Design", "Development", "Launch"];
-  // How far along the project is, cycling 1-4 so the client list shows variety.
-  const progress = (leadIndex % 4) + 1;
-  return labels.map((label, step) => ({
-    id: `ms-${leadIndex}-${step}`,
-    label,
-    status:
-      step < progress - 1 ? "done" : step === progress - 1 ? "in_progress" : "pending",
-  }));
+
+  const completed = completedStages(leadIndex);
+
+  return PROJECT_STAGES.map((label, step) => {
+    const status =
+      step < completed ? "done" : step === completed ? "in_progress" : "pending";
+
+    return {
+      id: `ms-${leadIndex}-${step}`,
+      label,
+      status,
+      // Only steps still to come carry a date, and they spread forward two
+      // weeks apart. A finished step with a target date invites the reader to
+      // check whether it was hit, which is a different feature.
+      //
+      // Every fourth project is deliberately running LATE — its next step was
+      // due before SEED_TODAY — so the overdue treatment on the projects grid
+      // has something to show. A demo dataset where nothing is ever late makes
+      // the warning look like dead code.
+      targetDate:
+        status === "done"
+          ? null
+          : seedDate(
+              (leadIndex % 4 === 1 ? -6 : 5) + (step - completed) * 14,
+            ),
+    } satisfies Milestone;
+  });
+}
+
+/**
+ * What we are building, in one line the client would recognise.
+ *
+ * Never mentions the pipeline, the source or the sales history — see the
+ * CLIENT-SAFE RULE at the top of config/portal.ts.
+ */
+const PROJECT_SUMMARIES = [
+  "A new website and a brand refresh.",
+  "A lead-generation campaign with landing pages.",
+  "An online store with delivery and payments.",
+  "A booking site for your customers.",
+  "A brand identity and a social media kit.",
+];
+
+function buildProjectSummary(leadIndex: number, isClient: boolean): string {
+  return isClient
+    ? PROJECT_SUMMARIES[leadIndex % PROJECT_SUMMARIES.length]
+    : "";
+}
+
+/**
+ * Previews shared with the client, newest first.
+ *
+ * Nothing exists before the Design stage has started, because there is
+ * genuinely nothing to look at during discovery — and a preview card promising
+ * a link that opens a blank page is worse than the empty state.
+ *
+ * `imageUrl` is null on every one of them: the repo ships no screenshots, and
+ * inventing an <img> src that 404s would render a broken-image icon on the
+ * client project page. The portal draws a designed placeholder instead.
+ */
+const PREVIEW_SEED: Array<[label: string, note: string]> = [
+  ["Homepage", "First look at the new homepage."],
+  ["Product pages", "Updated the gallery and the enquiry form."],
+  ["Mobile layout", "How everything reflows on a phone."],
+];
+
+function buildPreviews(
+  leadIndex: number,
+  isClient: boolean,
+  company: string,
+): ProjectPreview[] {
+  if (!isClient) return [];
+
+  const completed = completedStages(leadIndex);
+  if (completed < 1) return [];
+
+  const slug = slugify(company);
+
+  return PREVIEW_SEED.slice(0, Math.min(completed, PREVIEW_SEED.length)).map(
+    ([label, note], index) => ({
+      id: `prev-${leadIndex}-${index}`,
+      label,
+      note,
+      imageUrl: null,
+      url: `https://preview.stallionadvertising.ma/${slug}/${slugify(label)}`,
+      // Newest first: the entry at index 0 was shared most recently.
+      updatedDaysAgo: 2 + index * 5,
+    }),
+  );
+}
+
+/**
+ * The public link, and only once every stage is finished.
+ *
+ * A live URL on an unfinished project is the single most damaging thing this
+ * screen could get wrong: the client clicks it, sees half-built work at a
+ * public address, and reasonably concludes we launched without telling them.
+ */
+function buildLiveUrl(
+  leadIndex: number,
+  isClient: boolean,
+  company: string,
+): string | null {
+  if (!isClient) return null;
+
+  return completedStages(leadIndex) === PROJECT_STAGES.length
+    ? `https://${slugify(company)}.ma`
+    : null;
+}
+
+/**
+ * Agency-authored notes to the client, newest first.
+ *
+ * One per stage completed, plus the kick-off. This is what the portal shows
+ * INSTEAD of `lead.activity` — the sales timeline says "First dial attempt
+ * made", which is true, internal, and something no paying client should ever
+ * read about themselves.
+ */
+const UPDATE_SEED: Array<[title: string, body: string]> = [
+  [
+    "Kick-off done",
+    "Thanks for the brief — we have everything we need to get started.",
+  ],
+  [
+    "First designs are ready",
+    "Open the preview link and tell us what you think. Nothing is final yet.",
+  ],
+  ["Build under way", "The pages you approved are being put together now."],
+  ["You are live", "Your site is public and everything we agreed is delivered."],
+];
+
+function buildUpdates(leadIndex: number, isClient: boolean): ProjectUpdate[] {
+  if (!isClient) return [];
+
+  const completed = completedStages(leadIndex);
+  // The kick-off always happened, so a brand new client still has one update
+  // rather than an empty feed on the day they sign.
+  const reached = Math.min(completed + 1, UPDATE_SEED.length);
+
+  return UPDATE_SEED.slice(0, reached)
+    .map(([title, body], step) => ({
+      id: `upd-${leadIndex}-${step}`,
+      title,
+      body,
+      // Six days between updates, oldest first...
+      daysAgo: (reached - step) * 6,
+    }))
+    // ...then flipped, because the feed reads newest first.
+    .reverse();
 }
 
 function buildFiles(leadIndex: number, isClient: boolean): LeadFile[] {
@@ -358,6 +578,13 @@ function buildLeads(reps: Rep[]): Lead[] {
       milestones: buildMilestones(i, isClient),
       files: buildFiles(i, isClient),
       invoices: buildInvoices(i, isClient),
+
+      // Client-visible. Empty for anyone who has not converted yet — a lead in
+      // "Contacted" has no project, so there is nothing honest to put here.
+      projectSummary: buildProjectSummary(i, isClient),
+      previews: buildPreviews(i, isClient, COMPANIES[i % COMPANIES.length]),
+      liveUrl: buildLiveUrl(i, isClient, COMPANIES[i % COMPANIES.length]),
+      updates: buildUpdates(i, isClient),
     } satisfies Lead;
   });
 }
@@ -388,11 +615,22 @@ function buildThreads(reps: Rep[], currentUser: CurrentUser): ChatThread[] {
           ]
         : index === 1
           ? [
+              // Two-sided on purpose. The rep workspace opens straight into
+              // this thread, and a conversation with only one speaker in it
+              // demonstrates neither the alignment nor the colour that tell
+              // the two sides apart.
               {
                 id: `msg-${rep.id}-1`,
+                authorName: currentUser.name,
+                body: "Can you follow up with Amine Fassi today?",
+                timeLabel: "Tue 11:02 AM",
+                fromMe: true,
+              },
+              {
+                id: `msg-${rep.id}-2`,
                 authorName: rep.name,
-                body: "Can you follow up with Amine Fassi? He asked about pricing.",
-                timeLabel: "Mon 8:52 AM",
+                body: "On it — he asked about pricing, sending the deck now.",
+                timeLabel: "Tue 11:20 AM",
                 fromMe: false,
               },
             ]

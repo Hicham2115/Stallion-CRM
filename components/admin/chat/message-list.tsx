@@ -88,7 +88,8 @@ export function MessageList({
               {/* Alignment and colour are visual cues only. This is what a
                   screen reader gets, and it is why every bubble carries it. */}
               <span className="sr-only">
-                {message.fromMe ? "You" : message.authorName} said:
+                {message.fromMe ? content.selfLabel : message.authorName}{" "}
+                said:
               </span>
 
               <p className="whitespace-pre-wrap break-words text-[0.875rem] leading-relaxed">

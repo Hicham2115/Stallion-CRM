@@ -26,8 +26,26 @@ import type { CrmState } from "@/lib/types";
  * as `undefined` days old and fallen out of every range — Reports would have
  * rendered permanently empty for anyone who had the console open before this
  * change, with nothing on screen to explain why.
+ *
+ * v2 -> v3: `Lead` gained the four client-visible project fields
+ * (`projectSummary`, `previews`, `liveUrl`, `updates`) that the client portal
+ * renders, and the milestone seed changed so a project can actually reach
+ * 100%. A v2 payload carries none of them, so every portal screen would have
+ * read `lead.previews.length` off `undefined` and thrown — the client would
+ * have met an error boundary on their own project page.
+ *
+ * v3 -> v4: `Milestone` gained `targetDate`, and screenshots dropped in the
+ * dev workspace are now stored as data URLs on `Lead.previews[].imageUrl`. A
+ * v3 payload has no `targetDate`, which the date control would have read as
+ * `undefined` and rendered as an empty input that silently discards the value
+ * on first edit.
+ *
+ * v4 -> v5: `Rep` gained `dialsToday`, which is the headline figure on the rep
+ * workspace dashboard and in their sidebar. A v4 payload has no such field, so
+ * every rep would have opened their own dashboard to "NaN dials" — the one
+ * number on the screen they are measured on.
  */
-export const STORE_VERSION = 2;
+export const STORE_VERSION = 5;
 
 const STORAGE_KEY = `stallion-crm:state:v${STORE_VERSION}`;
 
@@ -63,10 +81,25 @@ export function readPersistedState(): PersistedState | null {
   }
 }
 
-/** Save the state. Silently gives up if storage is unavailable or full —
- *  losing persistence is an inconvenience, throwing here would break the UI. */
-export function writePersistedState(state: CrmState): void {
-  if (typeof window === "undefined") return;
+/**
+ * Save the state. Never throws — throwing here would break the UI over a
+ * storage problem the user can do nothing about mid-render.
+ *
+ * IT REPORTS FAILURE NOW, THOUGH. This used to swallow the error entirely,
+ * which was fine while the store held only text: a full quota was unlikely and
+ * the cost of missing it was small. Since the dev workspace can store
+ * screenshots (as downscaled data URLs — see lib/image-upload.ts) a
+ * QuotaExceededError is a REALISTIC outcome, and swallowing it produces the
+ * worst possible failure: the console keeps working perfectly on screen and
+ * quietly stops saving, so every change since is lost on refresh with nothing
+ * anywhere to explain why.
+ *
+ * The caller (CrmProvider) turns `false` into a visible warning once.
+ *
+ * @returns true if the state was written.
+ */
+export function writePersistedState(state: CrmState): boolean {
+  if (typeof window === "undefined") return false;
 
   try {
     // `hydrated` is a runtime flag, not data — persisting it would restore a
@@ -80,8 +113,13 @@ export function writePersistedState(state: CrmState): void {
       teamDialsHistory: state.teamDialsHistory,
     };
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(persistable));
-  } catch {
-    // Quota exceeded or storage blocked. Nothing useful to do about it.
+    return true;
+  } catch (error) {
+    // Quota exceeded, or storage blocked (Safari private browsing, a locked-
+    // down profile). The console goes to the developer; the caller is
+    // responsible for telling the person looking at the screen.
+    console.warn("[persistence] could not save console state", error);
+    return false;
   }
 }
 

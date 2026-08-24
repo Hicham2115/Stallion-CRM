@@ -11,8 +11,19 @@
  * ============================================================================
  */
 
+import { devConfig } from "@/config/dev";
 import { pipelineConfig, progressionStages } from "@/config/pipeline";
-import type { CrmState, Lead, Rep } from "@/lib/types";
+import { portalConfig } from "@/config/portal";
+import { roleDefinitions } from "@/config/roles";
+import type {
+  ChatMessage,
+  CrmState,
+  CurrentUser,
+  Lead,
+  Milestone,
+  Rep,
+} from "@/lib/types";
+import type { Session } from "@/lib/session";
 
 /* --------------------------------------------------------------------------
    Stage counts
@@ -435,4 +446,352 @@ export function isStale(lead: Lead, staleAfterDays: number): boolean {
   const stage = pipelineConfig.stages.find((entry) => entry.id === lead.stageId);
   if (stage?.isWon || stage?.isLost) return false;
   return lead.daysInStage >= staleAfterDays;
+}
+
+/* --------------------------------------------------------------------------
+   Client portal
+   --------------------------------------------------------------------------
+   The figures behind app/(console)/portal/. Same rule as everything above:
+   nothing here is stored, it is all derived from the client record, so the
+   headline percentage on the portal and the milestone list underneath it can
+   never disagree.
+   -------------------------------------------------------------------------- */
+
+/** Everything the portal needs to say where a project has got to. */
+export interface ProjectProgress {
+  /** Stages finished. */
+  done: number;
+  /** Stages in the plan. 0 means there is no plan yet. */
+  total: number;
+  /** 0-100, whole number. What the header rail and the "%" figure show. */
+  percent: number;
+  /** The stage being worked on right now, or null. */
+  current: Milestone | null;
+  /** The first stage not started yet, or null when nothing is left. */
+  next: Milestone | null;
+  /** Every stage is finished. Drives the "your project is live" state. */
+  launched: boolean;
+}
+
+/**
+ * How far along a client project is.
+ *
+ * DERIVED FROM THE MILESTONES, never stored. The prototype printed a hard-coded
+ * "100%" above a list of four milestones, which is a number that is right
+ * exactly once and silently wrong forever after.
+ *
+ * `percent` counts COMPLETED stages only — a stage that is in progress
+ * contributes nothing. Counting it as a half would put a figure on the screen
+ * that no row underneath it justifies, and "50%" next to two Complete pills and
+ * two Not-started pills is the kind of arithmetic a client checks.
+ */
+export function selectProjectProgress(lead: Lead): ProjectProgress {
+  const total = lead.milestones.length;
+  const done = lead.milestones.filter((m) => m.status === "done").length;
+
+  return {
+    done,
+    total,
+    percent: total === 0 ? 0 : Math.round((done / total) * 100),
+    current: lead.milestones.find((m) => m.status === "in_progress") ?? null,
+    next: lead.milestones.find((m) => m.status === "pending") ?? null,
+    launched: total > 0 && done === total,
+  };
+}
+
+/**
+ * The one record a signed-in client is allowed to see.
+ *
+ * Takes the id from the SESSION, never from a route param or a query string —
+ * `/portal?client=lead-7` must not be a way to read someone else's project.
+ * That is also why the portal has no `[clientId]` segment: there is nothing to
+ * put in it that the session does not already know.
+ *
+ * TODO(backend): the real version fetches by the session's client id on the
+ * server and returns a client-shaped record. Until then this reaches into the
+ * same local store the admin console uses, which is exactly why the CLIENT-SAFE
+ * RULE in config/portal.ts exists — the internal fields are present on this
+ * object and simply must not be rendered.
+ */
+export function selectClientLead(
+  state: CrmState,
+  session: Session,
+): Lead | undefined {
+  return state.leads.find((lead) => lead.id === session.clientLeadId);
+}
+
+/**
+ * Who the chrome should say is signed in.
+ *
+ * The store holds ONE `currentUser` (the agency admin from the seed), because
+ * that is what a mock has. A client session has to show the client instead —
+ * their name in the topbar, their company under it, a CLIENT badge beside it —
+ * so the identity is resolved here from the session rather than written into
+ * state. Persisted state therefore never has to be migrated when the role
+ * changes, and signing out of one role cannot leave the other role's name in
+ * the bar.
+ *
+ * TODO(backend): the real session carries the display name, so this collapses
+ * to reading it off `session`.
+ */
+export function selectSessionUser(
+  state: CrmState,
+  session: Session,
+): CurrentUser {
+  if (session.role === "sales") {
+    // The rep's own record is the identity. Falling back to the store's
+    // `currentUser` would put the sales MANAGER's name in a rep's topbar,
+    // which is the one identity mix-up nobody would question on sight.
+    const rep = selectSessionRep(state, session);
+    return {
+      id: rep?.id ?? session.repId,
+      name: rep?.name ?? state.currentUser.name,
+      title: rep?.role ?? state.currentUser.title,
+      roleBadge: roleDefinitions.sales.badge,
+      role: "sales",
+    };
+  }
+
+  if (session.role === "dev") {
+    // One shared "Dev Team" login, matching the design — see `DevIdentity` in
+    // config/dev.ts for why that is a decision rather than a placeholder.
+    const identity = devConfig.identity;
+    return {
+      id: "dev-team",
+      name: identity.name,
+      title: identity.title,
+      roleBadge: identity.roleBadge,
+      role: "dev",
+    };
+  }
+
+  if (session.role !== "client") return state.currentUser;
+
+  const lead = selectClientLead(state, session);
+  const identity = portalConfig.content.identity;
+
+  return {
+    id: lead?.id ?? session.clientLeadId,
+    name: lead?.name ?? identity.nameFallback,
+    // Their company, not their job title. "Client" is already on the badge
+    // beside it, and printing it twice tells the reader nothing new.
+    title: lead?.company || identity.titleFallback,
+    roleBadge: identity.roleBadge,
+    role: "client",
+  };
+}
+
+/* --------------------------------------------------------------------------
+   Sales rep workspace
+   --------------------------------------------------------------------------
+   The agency's own figures, narrowed to ONE PERSON. Every function here is a
+   scoped call into arithmetic that already exists — `kpisOf`, `stageCountsOf`
+   — rather than a second definition of the same rate. That is the whole point:
+   a rep's conversion rate and their manager's view of it have to be the same
+   number computed the same way, or the first commission conversation goes
+   badly.
+   -------------------------------------------------------------------------- */
+
+/** The signed-in rep's own record. `undefined` if the id no longer resolves. */
+export function selectSessionRep(
+  state: CrmState,
+  session: Session,
+): Rep | undefined {
+  return state.reps.find((rep) => rep.id === session.repId);
+}
+
+/**
+ * The leads assigned to one rep.
+ *
+ * THE SCOPE THE WHOLE WORKSPACE IS BUILT ON. Every rep screen goes through
+ * this — dashboard, pipeline, clients, lead detail — so "my" has exactly one
+ * definition and a new screen cannot accidentally widen it.
+ *
+ * TODO(backend): this filter must ALSO run server-side. Filtering in the
+ * browser means the whole database was sent to the browser first, which is
+ * fine for a mock and is not fine for a commission-bearing figure.
+ */
+export function selectRepLeads(state: CrmState, repId: string): Lead[] {
+  return state.leads.filter((lead) => lead.assignedRepId === repId);
+}
+
+/** The rep's own converted clients, in the store's order. */
+export function selectRepClients(state: CrmState, repId: string): Lead[] {
+  const wonStage = pipelineConfig.stages.find((stage) => stage.isWon);
+  if (!wonStage) return [];
+
+  return selectRepLeads(state, repId).filter(
+    (lead) => lead.stageId === wonStage.id,
+  );
+}
+
+/** The four figures on a rep's own dashboard. */
+export interface RepKpiValues {
+  /** Calls made today. The number a rep is managed on. */
+  dialsToday: number;
+  /** All-time dials, shown as the caption under it. */
+  dials: number;
+  /** All-time appointments booked. */
+  appointments: number;
+  /** Whole percent, 0-100. */
+  conversionRate: number;
+  /** Whole percent, 0-100. */
+  attendingRate: number;
+  /** Leads assigned to this rep. Fills the appointments caption. */
+  totalLeads: number;
+  /** How many of those converted. */
+  totalClients: number;
+}
+
+/**
+ * A rep's own performance.
+ *
+ *   dialsToday      straight off the rep record — see the TODO on `Rep` in
+ *                   lib/types.ts about why a counter is the weak part here
+ *   appointments    likewise
+ *   conversionRate  MY clients / MY leads, via `kpisOf` — the same formula the
+ *                   admin dashboard uses over the whole database
+ *   attendingRate   likewise: of my leads that ever booked, the share that
+ *                   turned up
+ *
+ * ── WHY `rep.conversions` IS NOT USED HERE ──────────────────────────────────
+ * The rep record carries its own `conversions` counter, and in the seed it does
+ * not agree with the leads: Sara B. is recorded with 4 conversions and has 2
+ * leads in the Client stage. On the admin screens those two figures never
+ * appear together so the disagreement is invisible; on a rep's own dashboard
+ * "My Conversion Rate" would sit inches from "My Clients" and the rep would
+ * spot it immediately.
+ *
+ * So the rate is derived from the LEADS, which are the source of truth for who
+ * converted. The counter stays for the admin leaderboard until the backend
+ * replaces both with dated records.
+ */
+export function selectRepKpis(state: CrmState, repId: string): RepKpiValues {
+  const rep = state.reps.find((entry) => entry.id === repId);
+  const leads = selectRepLeads(state, repId);
+
+  // Reusing kpisOf is the point — same definitions, narrower lead set.
+  const kpis = kpisOf(leads, rep ? [rep] : [], state.stageOrder);
+
+  return {
+    dialsToday: rep?.dialsToday ?? 0,
+    dials: rep?.dials ?? 0,
+    appointments: rep?.appointments ?? 0,
+    conversionRate: kpis.conversionRate,
+    attendingRate: kpis.attendingRate,
+    totalLeads: kpis.totalLeads,
+    totalClients: kpis.totalClients,
+  };
+}
+
+/* --------------------------------------------------------------------------
+   Chat
+   -------------------------------------------------------------------------- */
+
+/**
+ * Re-derive "did I write this" for whoever is reading.
+ *
+ * `ChatMessage.fromMe` is stored, and that was fine while the console had one
+ * viewer: the seed wrote it from the sales manager's point of view. The rep
+ * workspace opens the SAME threads from the other side, where every one of
+ * those flags is backwards — a rep would see their own messages painted as the
+ * manager's, on the one screen whose entire job is telling the two apart.
+ *
+ * `fromMe` is not a property of a message. It is a property of a message AND A
+ * READER, so it is computed at render time from the author.
+ *
+ * TODO(backend): drop the stored flag. A message carries an author id; the
+ * client compares it to the session and this function goes away. Matching on
+ * NAME is a mock-only shortcut — two people called "Sara B." would break it.
+ */
+export function messagesForViewer(
+  messages: ChatMessage[],
+  viewerName: string,
+): ChatMessage[] {
+  return messages.map((message) => ({
+    ...message,
+    fromMe: message.authorName === viewerName,
+  }));
+}
+
+/* --------------------------------------------------------------------------
+   Dev workspace
+   --------------------------------------------------------------------------
+   The delivery view of the same records. Every figure here is derived from the
+   client's own milestones and previews, so the number a developer reads on the
+   projects grid and the number the client reads on their dashboard are the
+   same number computed once.
+   -------------------------------------------------------------------------- */
+
+/** One card on the projects grid. A `Lead`, plus what delivery needs from it. */
+export interface ProjectRow {
+  lead: Lead;
+  progress: ProjectProgress;
+  /** Previews already shared with the client. */
+  previewCount: number;
+  /** Whether the public URL is set. */
+  live: boolean;
+  /**
+   * Steps whose target date has already passed and which are not finished.
+   *
+   * ALWAYS 0 ON THE SERVER — see `countOverdue` below for why, and why the
+   * caller has to be able to live with that.
+   */
+  overdue: number;
+}
+
+/**
+ * Every project the dev team can work on: the paying clients.
+ *
+ * A lead that has not converted has no delivery to do, which is why this is
+ * `selectClients()` and not `state.leads`. A developer looking at a list that
+ * included prospects would be looking at work that does not exist.
+ */
+export function selectProjects(state: CrmState, today?: Date): ProjectRow[] {
+  return selectClients(state).map((lead) => ({
+    lead,
+    progress: selectProjectProgress(lead),
+    previewCount: lead.previews.length,
+    live: Boolean(lead.liveUrl),
+    overdue: countOverdue(lead, today),
+  }));
+}
+
+/**
+ * How many unfinished steps are past their target date.
+ *
+ * `today` IS A REQUIRED-ISH ARGUMENT ON PURPOSE. Reading the clock inside a
+ * selector would make this function return different answers on the server and
+ * on the client for any project due today, which React reports as a hydration
+ * mismatch — intermittent, environment-dependent, and miserable to chase. See
+ * the date note at the top of lib/types.ts.
+ *
+ * So the caller passes a date it obtained AFTER hydration (in an effect), and
+ * omitting it yields 0 — the honest answer for a render that cannot know what
+ * day it is. The projects grid renders without overdue markers for one frame
+ * and then with them, which is correct: "nothing is late" is a safer thing to
+ * show for 16ms than a number that might be wrong.
+ */
+export function countOverdue(lead: Lead, today?: Date): number {
+  if (!today) return 0;
+
+  const cutoff = today.toISOString().slice(0, 10);
+
+  return lead.milestones.filter(
+    (milestone) =>
+      milestone.status !== "done" &&
+      milestone.targetDate !== null &&
+      milestone.targetDate < cutoff,
+  ).length;
+}
+
+/** Is this one step late? Same clock caveat as `countOverdue`. */
+export function isStepOverdue(
+  milestone: Milestone,
+  today?: Date,
+): boolean {
+  if (!today || !milestone.targetDate || milestone.status === "done") {
+    return false;
+  }
+  return milestone.targetDate < today.toISOString().slice(0, 10);
 }

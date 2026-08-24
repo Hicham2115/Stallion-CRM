@@ -1,12 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
-import { LogOut, Menu } from "lucide-react";
+import { Menu } from "lucide-react";
 
 import { StallionLogo } from "@/components/brand/stallion-logo";
 import { ConsoleNav } from "@/components/console/console-nav";
 import { SidebarStat } from "@/components/console/sidebar-stat";
+import { SignOutLink } from "@/components/console/sign-out-link";
 import {
   Sheet,
   SheetContent,
@@ -16,7 +16,8 @@ import {
 } from "@/components/ui/sheet";
 import { brandConfig } from "@/config/brand";
 import { consoleConfig } from "@/config/console";
-import { navigation, type Role } from "@/config/navigation";
+import { type Role } from "@/config/navigation";
+import { roleDefinitions } from "@/config/roles";
 
 /**
  * Navigation below `lg`, where the rail is hidden.
@@ -69,15 +70,11 @@ export function MobileNav({ role }: { role: Role }) {
           </div>
 
           <div className="mt-auto flex flex-col gap-2 p-3">
-            {consoleConfig.features.sidebarStat && <SidebarStat />}
-            <Link
-              href={navigation.signOut.href}
-              onClick={() => setOpen(false)}
-              className="flex h-11 items-center gap-3 rounded-xl px-3 text-[0.9375rem] text-ink-soft transition-colors hover:bg-white/[0.045] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60"
-            >
-              <LogOut aria-hidden className="size-[1.15rem] text-ink-muted" />
-              {navigation.signOut.label}
-            </Link>
+            {/* Same single source as the desktop rail: config/roles.ts decides
+                which roles get a readout, and SidebarStat decides which one. */}
+            {consoleConfig.features.sidebarStat &&
+              roleDefinitions[role].sidebarStat !== "none" && <SidebarStat />}
+            <SignOutLink onNavigate={() => setOpen(false)} />
           </div>
         </div>
       </SheetContent>

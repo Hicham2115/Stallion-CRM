@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
 
+import { loginConfig } from "@/config/login";
+
 /**
  * The CRM has no public marketing page — the root simply hands off to auth.
  *
@@ -7,6 +9,6 @@ import { redirect } from "next/navigation";
  * signed-in users to loginConfig.routes.afterSignIn instead.
  */
 export default function Home() {
-  redirect("/login");
+  redirect(loginConfig.routes.login);
 }
 

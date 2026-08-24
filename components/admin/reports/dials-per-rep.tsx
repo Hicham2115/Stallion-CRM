@@ -45,7 +45,7 @@ export function DialsPerRep() {
           <EmptyState icon={PhoneCall} title={content.emptyDialsTitle} />
         ) : (
           <RankedBarList
-            caption="Sales reps ranked by dials, with conversions per 100 dials"
+            caption={content.dialsTableCaption}
             rows={rows.map((row) => ({
               id: row.id,
               label: row.name,

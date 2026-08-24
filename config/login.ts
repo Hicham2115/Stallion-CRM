@@ -1,4 +1,5 @@
 import { brandConfig, type BrandConfig } from "@/config/brand";
+import type { Role } from "@/config/roles";
 
 /**
  * ============================================================================
@@ -50,6 +51,23 @@ export interface LoginFeatureFlags {
    */
   previewFallback: boolean;
   /**
+   * The role switch on the preview card.
+   *
+   * The product has three fronts — the agency console at /admin, the dev
+   * workspace at /dev and the client portal at /portal — and until auth is
+   * real there is nothing on a login form that can tell them apart. Typed
+   * credentials are not checked, so without this control every visitor lands
+   * in the console and the other two are reachable only by typing the URL.
+   *
+   * It rides on `previewFallback`, so it turns itself off the day
+   * `authBackendConnected` flips to true. At that point the role comes from
+   * the session and the landing route comes from `navigation.roleHome` — see
+   * homeFor() in lib/session.ts, which is already what this switch calls.
+   *
+   * Set false to keep the bypass but always enter as an admin.
+   */
+  previewRoleSwitch: boolean;
+  /**
    * The two background layers on the brand panel. Independent of each other —
    * either can be switched off without touching the other.
    *
@@ -65,6 +83,14 @@ export interface LoginFeatureFlags {
 
 /** Every URL the page can navigate to. Keep them relative. */
 export interface LoginRoutes {
+  /**
+   * The sign-in screen itself.
+   *
+   * Declared here because four other places navigate TO it — the root
+   * redirect, the sidebar's Log Out, and the portal's and rep's "sign in
+   * again" states. It was the string "/login" in every one of them.
+   */
+  login: string;
   /** Target of the "Forgot password?" link. Build this route when you need it. */
   forgotPassword: string;
   /**
@@ -206,10 +232,38 @@ export interface LoginConfig {
     previewChipLabel: string;
     /** Tooltip on the chip. Say what is and is not real. */
     previewChipTooltip: string;
-    /** Replaces submitLabel while the preview bypass is active. */
+    /**
+     * Replaces submitLabel while the preview bypass is active AND the role
+     * switch is off. With the switch on, the label comes from the chosen
+     * role's entry in `previewRoles` — the button has to name where it is
+     * about to go, and "Continue to console" above a switch set to Client is
+     * the button contradicting the control directly above it.
+     */
     previewSubmitLabel: string;
     /** One line under the submit, explaining why no credentials are needed. */
     previewHint: string;
+    /** ---- Role switch (features.previewRoleSwitch) ---- */
+    /** Micro-label above the switch. */
+    previewRoleLabel: string;
+    /** One line under it, saying what each option actually opens. */
+    previewRoleHint: string;
+    /** Accessible name for the radio group. */
+    previewRoleGroupLabel: string;
+    /**
+     * Which fronts the switch offers, in order.
+     *
+     * An array rather than one string per role: the roles are a list, and a
+     * list is what you edit when a new front appears. All four are offered now
+     * that sales has a workspace of its own; remove an entry to take a front
+     * out of the preview without touching the component.
+     */
+    previewRoles: Array<{
+      role: Role;
+      /** Label on the segment. One word where possible — three sit in a row. */
+      label: string;
+      /** Submit-button label while this role is chosen. Name the destination. */
+      submitLabel: string;
+    }>;
     supportFootnote: string;
     supportLinkLabel: string;
     /** ---- Footer ---- */
@@ -234,11 +288,13 @@ export const loginConfig: LoginConfig = {
     forgotPassword: true,
     supportFootnote: false,
     previewFallback: true,
+    previewRoleSwitch: true,
     logoWatermark: false,
     areaWatermark: true,
   },
 
   routes: {
+    login: "/login",
     forgotPassword: "/forgot-password",
     afterSignIn: "/admin",
     privacy: "/privacy",
@@ -306,6 +362,16 @@ export const loginConfig: LoginConfig = {
       "Authentication is not connected yet. Nothing is checked and no session is created — this door opens for anyone.",
     previewSubmitLabel: "Continue to console",
     previewHint: "No credentials needed while auth is disconnected.",
+    previewRoleLabel: "Continue as",
+    previewRoleHint:
+      "Admin runs the agency, Sales works the pipeline, Dev delivers the work, Client sees their project.",
+    previewRoleGroupLabel: "Choose which side of the product to open",
+    previewRoles: [
+      { role: "admin", label: "Admin", submitLabel: "Continue to console" },
+      { role: "sales", label: "Sales", submitLabel: "Continue to my pipeline" },
+      { role: "dev", label: "Dev", submitLabel: "Continue to workspace" },
+      { role: "client", label: "Client", submitLabel: "Continue to portal" },
+    ],
     supportFootnote: "No account yet?",
     supportLinkLabel: "Ask your administrator",
 
