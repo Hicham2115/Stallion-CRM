@@ -278,6 +278,7 @@ export function PipelineBoard({
 
   return (
     <DndContext
+      id="pipeline-board"
       sensors={sensors}
       collisionDetection={closestCorners}
       accessibility={{ announcements }}
