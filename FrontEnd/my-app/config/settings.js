@@ -1,0 +1,91 @@
+/**
+ * ============================================================================
+ *  SETTINGS CONFIGURATION
+ * ============================================================================
+ *  Copy and flags for /admin/settings.
+ *
+ *  Quick answers to the usual requests:
+ *    - Hide a panel ................... features.<panel> = false
+ *    - Change password length ......... generatedPasswordLength
+ *    - Hide "Reset demo data" ......... features.resetDemoData = false
+ *                                       (do NOT ship the demo without it)
+ * ============================================================================
+ */
+export const settingsConfig = {
+    features: {
+        createAccount: true,
+        quickAdd: true,
+        repManagement: true,
+        stageEditor: true,
+        passwordTools: true,
+        resetDemoData: true,
+    },
+    generatedPasswordLength: 16,
+    content: {
+        createTitle: "Create Team Account",
+        createHint: "Adds a rep with sign-in access",
+        nameLabel: "Full name",
+        namePlaceholder: "Youssef Karim",
+        emailLabel: "Work email",
+        emailPlaceholder: "youssef@stallionadvertising.ma",
+        passwordLabel: "Temporary password",
+        passwordPlaceholder: "Generate or type one",
+        passwordHint: "They will be asked to change it on first sign-in.",
+        generateLabel: "Generate",
+        showPasswordLabel: "Show password",
+        hidePasswordLabel: "Hide password",
+        createSubmitLabel: "Create account",
+        createPendingLabel: "Creating…",
+        createToast: "Created an account for {name}",
+        quickAddTitle: "Quick add",
+        // The prototype left this control floating with no explanation of how it
+        // differed from the form above it. Grouped here, the difference is the
+        // whole label.
+        quickAddHint: "Add a rep for tracking only, with no sign-in.",
+        quickAddLabel: "Quick add (no login)",
+        quickAddPendingLabel: "Adding…",
+        repsTitle: "Sales Reps",
+        repsHint: "Edit, deactivate or remove",
+        repColumn: "Rep",
+        repsCaption: "Sales reps, with their sign-in email and account status",
+        emailColumn: "Email",
+        statusColumn: "Status",
+        actionsColumn: "Actions",
+        activeLabel: "Active",
+        inactiveLabel: "Inactive",
+        editLabel: "Edit",
+        saveLabel: "Save",
+        cancelLabel: "Cancel",
+        rowActionsLabel: "Rep actions",
+        deactivateLabel: "Deactivate",
+        reactivateLabel: "Reactivate",
+        deleteRepLabel: "Delete rep",
+        deleteRepTitle: "Delete this rep?",
+        deleteRepDescription: "Their dial and conversion history goes with them, and any leads assigned to them become unassigned. Deactivating keeps the history instead.",
+        deleteRepConfirmLabel: "Delete rep",
+        deactivateToast: "{name} deactivated",
+        reactivateToast: "{name} reactivated",
+        deleteRepToast: "Deleted {name}",
+        saveRepToast: "Saved {name}",
+        emptyReps: "No reps yet. Create one above.",
+        stagesTitle: "Pipeline Stages",
+        stagesHint: "Rename and reorder",
+        // The prototype promised changes "apply everywhere instantly", which reads
+        // as a warning that renaming might break something. It cannot — and saying
+        // WHY is what makes the panel safe to use.
+        stagesReassurance: "Renaming is safe: leads reference the stage id, not its label, so nothing is reassigned.",
+        stageNameLabel: "Stage name",
+        moveUpLabel: "Move up",
+        moveDownLabel: "Move down",
+        renameToast: "Renamed to {name}",
+        reorderToast: "Stage order saved",
+        reorderAnnouncement: "{name} moved to position {position} of {total}.",
+        resetTitle: "Demo Data",
+        resetHint: "Restore the sample dataset",
+        resetLabel: "Reset demo data",
+        resetDialogTitle: "Reset demo data?",
+        resetDialogDescription: "Every change you have made in this browser — added clients, moved leads, messages, renamed stages — is discarded and the original sample data comes back. This cannot be undone.",
+        resetConfirmLabel: "Reset everything",
+        resetToast: "Demo data restored",
+    },
+};

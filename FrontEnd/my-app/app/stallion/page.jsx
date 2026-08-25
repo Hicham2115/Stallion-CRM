@@ -7,11 +7,11 @@ import { ClosingCta } from "@/components/stallion/closing-cta";
 import { SiteFooter } from "@/components/stallion/site-footer";
 
 export default function Home() {
-  return ( 
-    <div className="relative min-h-screen overflow-x-hidden bg-[#0f1215] bg-gradient-to-br from-[#0f1215] via-[#1a1d23] to-[#0f1215] font-sans text-[#d1d5db]">
+  return (
+    <div className="relative min-h-screen overflow-x-hidden bg-[#0a0c0e] bg-gradient-to-br from-[#0a0c0e] via-[#131519] to-[#0a0c0e] font-sans text-[#d1d5db]">
       <AmbientBackground />
 
-      <div className="relative z-10"> 
+      <div className="relative z-10">
         <SiteHeader />
         <Hero />
         <SocialProof />
