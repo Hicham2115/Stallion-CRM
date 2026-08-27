@@ -1,21 +1,35 @@
 "use client";
-import { createContext, useContext } from "react";
-import { ANONYMOUS_SESSION } from "@/lib/session";
-// Hands the session — read once server-side in app/(console)/layout.tsx —
-// down to Client Components several levels deep (sidebar, topbar, portal
-// panels) without threading it through every prop signature in between.
-// Read on the server rather than fetched client-side so the first byte of
-// HTML already has the right chrome (no wrong-sidebar flash). Read-only: who
-// you are only changes at /login or Log Out, both of which reload the page.
-const SessionContext = createContext(null);
-export function SessionProvider({ session, children, }) {
-    return (<SessionContext.Provider value={session}>
-      {children}
-    </SessionContext.Provider>);
-}
-// Falls back to ANONYMOUS_SESSION outside the provider (rather than
-// throwing, like useCrm() does) since a shared component may legitimately
-// render on /login where there's no session at all.
+import { useEffect, useState } from "react";
+import { portalConfig } from "@/config/portal";
+import { repConfig } from "@/config/rep";
+import { useSessionStore } from "@/lib/store/session-store";
+
+// Session now lives in localStorage (via Zustand), not a server-read cookie —
+// so any component can read it directly with useSession(), no provider or
+// context needed. Falls back to the demo ids when a piece is missing (a
+// signed-in user with no linked lead/rep record yet), same as before.
 export function useSession() {
-    return useContext(SessionContext) ?? ANONYMOUS_SESSION;
+  const role = useSessionStore((state) => state.role) ?? "admin";
+  const clientLeadId =
+    useSessionStore((state) => state.clientLeadId) ?? portalConfig.demo.leadId;
+  const repId = useSessionStore((state) => state.repId) ?? repConfig.demo.repId;
+  return { role, clientLeadId, repId };
+}
+
+// localStorage isn't readable during the server render or the first client
+// render (before hydration), so route guards must wait for this to flip to
+// `true` before trusting `useSession()` — otherwise every visitor briefly
+// looks like the default role and gets redirected, then corrected.
+export function useSessionHydrated() {
+  const [hydrated, setHydrated] = useState(
+    () => useSessionStore.persist.hasHydrated(),
+  );
+  useEffect(() => {
+    if (useSessionStore.persist.hasHydrated()) {
+      setHydrated(true);
+      return;
+    }
+    return useSessionStore.persist.onFinishHydration(() => setHydrated(true));
+  }, []);
+  return hydrated;
 }

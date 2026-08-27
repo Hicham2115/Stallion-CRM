@@ -12,5 +12,6 @@ Route::get('/user', function (Request $request) {
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:10,1');
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
 
+Route::get('/leads', [LeadController::class, 'index'])->middleware('auth:sanctum');
 Route::post('/leads', [LeadController::class, 'store'])->middleware('throttle:10,1');
 Route::post('/leads/gate', [LeadController::class, 'storeGate'])->middleware('throttle:10,1');

@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "@tanstack/react-form";
 import { useMutation } from "@tanstack/react-query";
@@ -22,15 +23,11 @@ import {
   fieldLabel,
   fieldWarningText,
 } from "@/components/deck/field";
-import { homeForRole } from "@/config/roles";
 import { api } from "@/lib/axios";
 import { getErrorMessage } from "@/lib/get-error-message";
-import { SESSION_ROLE_COOKIE } from "@/lib/session";
-import { useAuthStore } from "@/lib/store/auth-store";
+import { useSessionStore } from "@/lib/store/session-store";
 import { loginSchema } from "@/lib/validations/auth";
 import { cn } from "@/lib/utils";
-
-const ROLE_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
 
 function fieldError(field) {
   const [error] = field.state.meta.errors;
@@ -46,7 +43,15 @@ const inputBase = cn(
 const errorText = cn("mt-2", fieldErrorText);
 const delay = (ms) => ({ "--reveal-delay": `${ms}ms` });
 
+const ROLE_ROUTES = {
+  admin: "/admin",
+  sales: "/rep",
+  dev: "/dev",
+  client: "/portal",
+};
+
 export function LoginForm() {
+  const router = useRouter();
   const [remember, setRemember] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [capsLock, setCapsLock] = useState(false);
@@ -69,14 +74,13 @@ export function LoginForm() {
       }
     },
     onSuccess: (data) => {
-      // Token goes in the Zustand store (persisted to localStorage) for
-      // lib/axios.ts to attach to requests. Role goes in a cookie so the
-      // server layouts can read it before the first byte of HTML.
-      useAuthStore.getState().setToken(data.token);
-      document.cookie = `${SESSION_ROLE_COOKIE}=${data.user.role}; path=/; max-age=${ROLE_COOKIE_MAX_AGE_SECONDS}; samesite=lax`;
-      // Full page load, not a client-side route change: Next's client cache
-      // doesn't know the cookie just changed.
-      window.location.assign(homeForRole(data.user.role));
+      // Everything the app needs to know who's signed in — role + token —
+      // lands in one place: the Zustand store, persisted to localStorage.
+      useSessionStore.getState().setSession({
+        role: data.user.role,
+        token: data.token,
+      });
+      router.replace(ROLE_ROUTES[data.user.role] ?? "/admin");
     },
     onError: (error) => {
       toast.error(getErrorMessage(error));

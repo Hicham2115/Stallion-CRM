@@ -12,6 +12,15 @@ use Illuminate\Validation\ValidationException;
 
 class LeadController extends Controller
 {
+    public function index()
+    {
+        $leads = Lead::with('attribution')
+            ->orderByDesc('created_at')
+            ->get();
+
+        return response()->json($leads);
+    }
+
     public function store(Request $request)
     {
         $request->merge([

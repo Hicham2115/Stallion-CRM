@@ -3,6 +3,7 @@ import { devConfig } from "@/config/dev";
 import { portalConfig } from "@/config/portal";
 import { repConfig } from "@/config/rep";
 const NOTHING = [];
+
 export const roleDefinitions = {
     admin: {
         id: "admin",

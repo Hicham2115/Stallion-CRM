@@ -1,103 +1,196 @@
 "use client";
-import { useMemo, useState } from "react";
-import { SearchX, Users } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Eye, Mail, Phone, SearchX, Users } from "lucide-react";
 import { toast } from "sonner";
-import { AddClientDialog } from "@/components/admin/clients/add-client-dialog";
-import { ClientCard } from "@/components/admin/clients/client-card";
-import { ClientsTable } from "@/components/admin/clients/clients-table";
+import { PageShell } from "@/components/console/page-shell";
 import { ClientSearch } from "@/components/admin/clients/client-search";
-import { ConfirmDialog, showUndoToast } from "@/components/deck/confirm-dialog";
+import { LeadDetailsDialog } from "@/components/console/lead-details-dialog";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { DataCell, DataRow, DataTable } from "@/components/deck/data-table";
 import { EmptyState } from "@/components/deck/empty-state";
 import { Panel, PanelBody } from "@/components/deck/panel";
-import { clientsConfig } from "@/config/clients";
-import { formatNumber, template } from "@/lib/format";
-import { useCrm } from "@/lib/store/crm-store";
-import { selectClients } from "@/lib/store/selectors";
-import { PageShell } from "@/components/console/page-shell";
-const { content, features } = clientsConfig;
-// A "client" is not a separate record — it's a lead sitting in the stage
-// flagged `isWon`, which is why this screen and the pipeline's Client column
-// can never disagree about the count. Delete gets two independent nets: a
-// confirm dialog naming the client, and an undo toast — they catch different
-// mistakes (the mis-click noticed before vs. a second after confirming).
+import { Skeleton } from "@/components/ui/skeleton";
+import { api } from "@/lib/axios";
+import { formatNumber, formatShortDate, initialsOf } from "@/lib/format";
+import { getErrorMessage } from "@/lib/get-error-message";
+
+const COLUMNS = [
+  { key: "name", label: "Name", width: "w-[16rem]" },
+  { key: "business", label: "Business", hideBelow: "lg" },
+  { key: "status", label: "Status" },
+  { key: "phone", label: "Phone" },
+  { key: "email", label: "Email", hideBelow: "xl" },
+  { key: "submitted", label: "Submitted" },
+  { key: "actions", label: "Actions", srOnly: true, width: "w-[3.5rem]" },
+];
+
+// Real leads captured from the site — not the mock "client" pipeline
+// concept, so this is a plain read-only list rather than the fuller
+// stage/rep-assignment screen that used to live here.
 export function ClientsView() {
-    const { state, actions } = useCrm();
-    const [query, setQuery] = useState("");
-    const [pendingDelete, setPendingDelete] = useState(null);
-    const clients = selectClients(state);
-    const filtered = useMemo(() => {
-        const needle = query.trim().toLowerCase();
-        if (!needle)
-            return clients;
-        // Phone excluded — it'd need normalising (spaces, +212 vs 0) to match
-        // usefully.
-        return clients.filter((client) => [client.name, client.company, client.email]
-            .join(" ")
-            .toLowerCase()
-            .includes(needle));
-    }, [clients, query]);
-    function repNameOf(repId) {
-        return state.reps.find((rep) => rep.id === repId)?.name ?? content.unassignedLabel;
-    }
-    // Delete, then offer to put it back — see the TODO in confirm-dialog.tsx
-    // for why a real backend needs different undo handling.
-    async function handleConfirmDelete() {
-        const client = pendingDelete;
-        if (!client)
-            return;
-        // Captured before the delete, so undo restores it to the same spot.
-        const index = state.leads.findIndex((lead) => lead.id === client.id);
-        const result = await actions.deleteLead(client.id);
-        if (!result.ok)
-            return;
-        if (features.undoDelete) {
-            showUndoToast({
-                message: template(content.deleteToast, { name: client.name }),
-                onUndo: async () => {
-                    const restored = await actions.restoreLead(client, index);
-                    if (restored.ok) {
-                        toast.success(template(content.undoToast, { name: client.name }));
-                    }
-                },
-            });
-        }
-    }
-    const searching = query.trim().length > 0;
-    return (<PageShell>
+  const [query, setQuery] = useState("");
+  const [selectedLead, setSelectedLead] = useState(null);
+
+  const {
+    data: leads = [],
+    isPending,
+    isError,
+    error,
+  } = useQuery({
+    queryKey: ["leads"],
+    queryFn: async () => (await api.get("/api/leads")).data,
+  });
+
+  useEffect(() => {
+    if (isError) toast.error(getErrorMessage(error));
+  }, [isError, error]);
+
+  const filtered = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    if (!needle) return leads;
+    return leads.filter((lead) =>
+      [lead.full_name, lead.email, lead.business_type]
+        .join(" ")
+        .toLowerCase()
+        .includes(needle),
+    );
+  }, [leads, query]);
+
+  const searching = query.trim().length > 0;
+
+  return (
+    <PageShell>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex min-w-0 flex-1 flex-wrap items-start gap-3">
           <p className="mt-2 shrink-0 font-mono text-[0.6875rem] uppercase tracking-[0.14em] text-ink-muted">
-            <span className="deck-nums text-ink">{formatNumber(clients.length)}</span>{" "}
-            {content.countLabel}
+            <span className="deck-nums text-ink">
+              {formatNumber(leads.length)}
+            </span>{" "}
+            leads
           </p>
 
-          {features.search && (<ClientSearch query={query} onQueryChange={setQuery} resultCount={filtered.length}/>)}
+          <ClientSearch
+            query={query}
+            onQueryChange={setQuery}
+            resultCount={filtered.length}
+          />
         </div>
-
-        {features.addClient && <AddClientDialog />}
       </div>
 
       <Panel>
-        {filtered.length === 0 ? (
-        searching ? (<EmptyState icon={SearchX} title={content.noMatchesTitle} description={content.noMatchesDescription}/>) : (<EmptyState icon={Users} title={content.emptyTitle} description={content.emptyDescription}/>)) : (<>
-            {/* Phone gets cards — six columns can't shrink to 360px readably. */}
-            <PanelBody className="md:hidden">
-              <div className="flex flex-col gap-3">
-                {filtered.map((client) => (<ClientCard key={client.id} client={client} repName={repNameOf(client.assignedRepId)} onDelete={setPendingDelete}/>))}
-              </div>
-            </PanelBody>
+        {isPending ? (
+          <PanelBody className="flex flex-col gap-3">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-12 w-full" />
+            ))}
+          </PanelBody>
+        ) : filtered.length === 0 ? (
+          searching ? (
+            <EmptyState
+              icon={SearchX}
+              title="No leads match your search"
+              description="Try a different name, business or email."
+            />
+          ) : (
+            <EmptyState
+              icon={Users}
+              title="No leads yet"
+              description="Leads submitted from the site will show up here."
+            />
+          )
+        ) : (
+          <PanelBody flush>
+            <DataTable
+              columns={COLUMNS}
+              caption="Leads"
+              minWidth="48rem"
+              stickyFirstColumn
+            >
+              {filtered.map((lead) => (
+                <DataRow key={lead.id}>
+                  <DataCell sticky>
+                    <span className="flex items-center gap-3">
+                      <span
+                        aria-hidden
+                        className="grid size-8 shrink-0 place-items-center rounded-full bg-brand/15 font-mono text-[0.625rem] font-medium text-brand"
+                      >
+                        {initialsOf(lead.full_name)}
+                      </span>
+                      <span className="truncate text-[0.875rem] font-medium text-ink">
+                        {lead.full_name}
+                      </span>
+                    </span>
+                  </DataCell>
 
-            <PanelBody flush className="hidden md:block">
-              <ClientsTable clients={filtered} repNameOf={repNameOf} onDelete={setPendingDelete}/>
-            </PanelBody>
-          </>)}
+                  <DataCell className="hidden text-[0.875rem] text-ink-soft lg:table-cell">
+                    {lead.business_type ?? "—"}
+                  </DataCell>
+
+                  <DataCell>
+                    <Badge variant="secondary">{lead.status}</Badge>
+                  </DataCell>
+
+                  <DataCell>
+                    {lead.phone ? (
+                      <a
+                        href={`tel:${lead.phone.replace(/\s/g, "")}`}
+                        className="deck-nums inline-flex items-center gap-1.5 whitespace-nowrap text-[0.875rem] text-ink-soft transition-colors hover:text-brand"
+                      >
+                        <Phone
+                          aria-hidden
+                          className="size-3.5 shrink-0 text-ink-muted"
+                        />
+                        {lead.phone}
+                      </a>
+                    ) : (
+                      <span className="text-[0.875rem] text-ink-soft">—</span>
+                    )}
+                  </DataCell>
+
+                  <DataCell className="hidden xl:table-cell">
+                    <a
+                      href={`mailto:${lead.email}`}
+                      className="inline-flex max-w-[14rem] items-center gap-1.5 text-[0.875rem] text-ink-soft transition-colors hover:text-brand"
+                    >
+                      <Mail
+                        aria-hidden
+                        className="size-3.5 shrink-0 text-ink-muted"
+                      />
+                      <span className="truncate">{lead.email}</span>
+                    </a>
+                  </DataCell>
+
+                  <DataCell className="deck-nums text-[0.875rem] text-ink-soft">
+                    {formatShortDate(lead.created_at)}
+                  </DataCell>
+
+                  <DataCell className="text-right">
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={`Details — ${lead.full_name}`}
+                      className="text-ink-muted hover:text-ink"
+                      onClick={() => setSelectedLead(lead)}
+                    >
+                      <Eye aria-hidden />
+                    </Button>
+                  </DataCell>
+                </DataRow>
+              ))}
+            </DataTable>
+          </PanelBody>
+        )}
       </Panel>
 
-      {features.confirmDelete && (<ConfirmDialog open={pendingDelete !== null} onOpenChange={(open) => {
-                if (!open)
-                    setPendingDelete(null);
-            }} title={content.deleteTitle} description={content.deleteDescription} recordName={pendingDelete
-                ? `${pendingDelete.name} · ${pendingDelete.company}`
-                : undefined} confirmLabel={content.deleteConfirmLabel} pendingLabel={content.deletePendingLabel} onConfirm={handleConfirmDelete}/>)}
-    </PageShell>);
+      <LeadDetailsDialog
+        lead={selectedLead}
+        open={selectedLead !== null}
+        onOpenChange={(open) => {
+          if (!open) setSelectedLead(null);
+        }}
+      />
+    </PageShell>
+  );
 }

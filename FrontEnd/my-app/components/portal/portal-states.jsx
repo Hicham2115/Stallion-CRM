@@ -5,7 +5,8 @@ import { EmptyState } from "@/components/deck/empty-state";
 import { Panel } from "@/components/deck/panel";
 import { navigation } from "@/config/navigation";
 import { portalConfig } from "@/config/portal";
-import { endSession } from "@/lib/session";
+import { api } from "@/lib/axios";
+import { useSessionStore } from "@/lib/store/session-store";
 const { content } = portalConfig;
 // Blocks match the real layout's shape so the page doesn't jump when data lands.
 export function PortalSkeleton() {
@@ -28,9 +29,8 @@ export function PortalMissing() {
         // Button, not a Link — "sign in again" has to end the stale session,
         // not just navigate while leaving the cookie in place.
         <button type="button" onClick={async () => {
-                await endSession();
-                // Document navigation — destination is decided server-side
-                // from the cookie just cleared. See sign-out-link.tsx.
+                await api.post("/api/logout").catch(() => {});
+                useSessionStore.getState().clearSession();
                 window.location.assign(navigation.signOut.href);
             }} className="mt-1 inline-flex h-10 items-center rounded-xl border border-hairline bg-white/[0.03] px-4 text-[0.875rem] font-medium text-ink transition-colors hover:border-hairline-strong hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60">
               {content.missingAction}

@@ -124,7 +124,7 @@ export function formatDaysAgo(days) {
 export function formatShortDate(iso) {
     if (!iso)
         return "";
-    const [year, month, day] = iso.split("-").map(Number);
+    const [year, month, day] = iso.split("T")[0].split("-").map(Number);
     if (!year || !month || !day)
         return "";
     return new Intl.DateTimeFormat(locale, {
@@ -137,7 +137,7 @@ export function formatShortDate(iso) {
 export function formatDate(iso) {
     if (!iso)
         return "";
-    const [year, month, day] = iso.split("-").map(Number);
+    const [year, month, day] = iso.split("T")[0].split("-").map(Number);
     if (!year || !month || !day)
         return "";
     return new Intl.DateTimeFormat(locale, {

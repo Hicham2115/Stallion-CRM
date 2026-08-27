@@ -1,5 +1,5 @@
 import axios from "axios";
-import { useAuthStore } from "@/lib/store/auth-store";
+import { useSessionStore } from "@/lib/store/session-store";
 
 /** Talks directly to the Laravel backend (CORS-enabled). */
 export const api = axios.create({
@@ -8,7 +8,7 @@ export const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-  const token = useAuthStore.getState().token;
+  const token = useSessionStore.getState().token;
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
