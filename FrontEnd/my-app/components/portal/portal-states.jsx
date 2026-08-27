@@ -5,7 +5,7 @@ import { EmptyState } from "@/components/deck/empty-state";
 import { Panel } from "@/components/deck/panel";
 import { navigation } from "@/config/navigation";
 import { portalConfig } from "@/config/portal";
-import { clearPreviewSession } from "@/lib/session";
+import { endSession } from "@/lib/session";
 const { content } = portalConfig;
 // Blocks match the real layout's shape so the page doesn't jump when data lands.
 export function PortalSkeleton() {
@@ -27,8 +27,8 @@ export function PortalMissing() {
         <EmptyState icon={SearchX} title={content.missingTitle} description={content.missingDescription} action={
         // Button, not a Link — "sign in again" has to end the stale session,
         // not just navigate while leaving the cookie in place.
-        <button type="button" onClick={() => {
-                clearPreviewSession();
+        <button type="button" onClick={async () => {
+                await endSession();
                 // Document navigation — destination is decided server-side
                 // from the cookie just cleared. See sign-out-link.tsx.
                 window.location.assign(navigation.signOut.href);

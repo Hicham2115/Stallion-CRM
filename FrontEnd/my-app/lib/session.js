@@ -1,31 +1,23 @@
 /**
- * SESSION BOUNDARY — BACKEND DEVELOPERS: READ THIS BEFORE THE PORTAL
+ * SESSION BOUNDARY
  *
  *  Who is signed in, and therefore which half of the app they get.
  *
- *  Today there is no backend, so "who is signed in" is a COOKIE the login
- *  screen writes and the layouts read. That is deliberately the same shape a
- *  real session has — a value on the request, read on the server, available
- *  before the first byte of HTML — so replacing it is a change to two
- *  functions rather than a change to every screen.
+ *  Two pieces, two storage mechanisms, on purpose:
+ *   - role      → a cookie. app/(console)/*\/layout.tsx read it on the
+ *                 server via lib/session-server.ts, before the first byte of
+ *                 HTML — a Server Component can't read localStorage.
+ *   - token     → the Zustand store in lib/store/auth-store.ts, persisted to
+ *                 localStorage. Only ever read client-side, by lib/axios.ts,
+ *                 to authorize API calls.
  *
- *  THIS IS NOT SECURITY. It is a display switch.
- *  Anyone can edit a cookie in devtools and land in /admin. Every
- *  route under app/(console)/ must be authorised again on the server
- *  by the real backend, and every API response must be filtered to
- *  what that user is allowed to see. Hiding a nav item hides a nav
- *  item.
+ *  THIS IS NOT SECURITY. Anyone can edit the cookie or localStorage from
+ *  devtools. Every route under app/(console)/ must be authorised again on
+ *  the server by the real backend, and every API response must be filtered
+ *  to what that user is allowed to see. Hiding a nav item hides a nav item.
  *
- *  WHAT TO REPLACE WHEN THE BACKEND LANDS
- *    1. lib/session-server.ts  → readSession() reads your real session
- *       (NextAuth's `auth()`, a Supabase helper, your own signed cookie)
- *       instead of this unsigned one.
- *    2. This file             → delete `writePreviewSession` /
- *       `clearPreviewSession`. A session cookie must be set SERVER-side as
- *       httpOnly + secure + sameSite, which is exactly what a browser-writable
- *       cookie is not.
- *    3. lib/auth.ts           → AUTH_BACKEND_CONNECTED = true, which removes
- *       the role switch from the login card on its own.
+ *  A hardened version moves both behind an httpOnly cookie set by a
+ *  server-side route, so neither is readable from the page's own scripts.
  *
  *  This file is isomorphic on purpose: it imports nothing from `next/headers`,
  *  so a Client Component can import the types and the cookie name from it. The
@@ -34,6 +26,7 @@
 import { portalConfig } from "@/config/portal";
 import { repConfig } from "@/config/rep";
 import { homeForRole, isRole } from "@/config/roles";
+import { useAuthStore } from "@/lib/store/auth-store";
 /**
  * The cookie the preview build uses to remember the chosen role.
  *
@@ -56,8 +49,7 @@ export const SESSION_CLIENT_COOKIE = "stallion-client";
  * future "view as this rep" control has somewhere to write.
  */
 export const SESSION_REP_COOKIE = "stallion-rep";
-/** One year. It is a preview convenience, not a credential. */
-const COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
+const backendUrl = process.env.NEXT_PUBLIC_LARAVEL_API_URL || "http://localhost:8000";
 /**
  * The session a request gets when it carries no cookies at all.
  *
@@ -96,42 +88,31 @@ export function parseSession(roleValue, clientValue, repValue) {
 export function homeFor(role) {
     return homeForRole(role);
 }
-/* PREVIEW-ONLY WRITES
-   DELETE THIS SECTION WITH THE PREVIEW BUILD. A real session cookie is set by
-   the server with httpOnly, which is precisely what makes it unreadable and
-   unwritable from here. */
 /**
- * Remember the role chosen on the login card.
- *
- * Browser only — it writes `document.cookie`, so it must be called from an
- * event handler, never during render.
+ * NOT SECURITY — same caveat as the rest of this file. Anyone can read the
+ * role cookie or the token in localStorage from devtools; the token
+ * authorises API calls, it does not protect them.
  */
-export function writePreviewSession(role, identity) {
-    if (typeof document === "undefined")
-        return;
-    document.cookie = `${SESSION_ROLE_COOKIE}=${role}; path=/; max-age=${COOKIE_MAX_AGE_SECONDS}; samesite=lax`;
-    if (identity?.clientLeadId) {
-        document.cookie = `${SESSION_CLIENT_COOKIE}=${identity.clientLeadId}; path=/; max-age=${COOKIE_MAX_AGE_SECONDS}; samesite=lax`;
-    }
-    if (identity?.repId) {
-        document.cookie = `${SESSION_REP_COOKIE}=${identity.repId}; path=/; max-age=${COOKIE_MAX_AGE_SECONDS}; samesite=lax`;
-    }
-}
 /**
  * Forget it again — what Log Out calls.
  *
- * Without this, signing out and back in as the other role would land you in
- * the half of the app you just left, and the only way out would be clearing
- * site data by hand.
+ * Revokes the token on the server first (so it can't be replayed), then
+ * clears it from the store and clears every session cookie. Without the
+ * clear, signing out and back in as another role would land you in the half
+ * of the app you just left.
  */
-export function clearPreviewSession() {
+export async function endSession() {
+    const token = useAuthStore.getState().token;
+    if (token) {
+        await fetch(`${backendUrl}/api/logout`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+        }).catch(() => {});
+    }
+    useAuthStore.getState().clearToken();
     if (typeof document === "undefined")
         return;
-    for (const name of [
-        SESSION_ROLE_COOKIE,
-        SESSION_CLIENT_COOKIE,
-        SESSION_REP_COOKIE,
-    ]) {
+    for (const name of [SESSION_ROLE_COOKIE, SESSION_CLIENT_COOKIE, SESSION_REP_COOKIE]) {
         document.cookie = `${name}=; path=/; max-age=0; samesite=lax`;
     }
 }
