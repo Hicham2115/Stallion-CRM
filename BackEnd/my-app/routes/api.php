@@ -9,3 +9,4 @@ Route::get('/user', function (Request $request) {
 })->middleware('auth:sanctum');
 
 Route::post('/leads', [LeadController::class, 'store'])->middleware('throttle:10,1');
+Route::post('/leads/gate', [LeadController::class, 'storeGate'])->middleware('throttle:10,1');
