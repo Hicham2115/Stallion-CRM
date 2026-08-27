@@ -1,5 +1,5 @@
+import { Play, Volume2 } from "lucide-react";
 import { CtaButton } from "@/components/stallion/cta-button";
-import { VideoPlaceholder } from "@/components/stallion/video-placeholder";
 const chapters = [
   { num: "01", title: "Why leads go cold" },
   { num: "02", title: "The real cost of slow follow-up" },
@@ -7,6 +7,7 @@ const chapters = [
   { num: "04", title: "How the Stallion system works" },
   { num: "05", title: "Your next step, book a call" },
 ];
+
 export function Hero() {
   return (
     <section className="mx-auto max-w-[1180px] px-6 pt-10 text-center">
@@ -15,24 +16,16 @@ export function Hero() {
         <span className="text-[#bafc0c]">Bottleneck.</span>
       </h1>
 
-      <div className="mx-auto grid max-w-[1040px] grid-cols-1 gap-8 rounded-2xl border border-[#65891c]/40 bg-[#15181d] p-5 text-left shadow-[0_10px_30px_rgba(0,0,0,0.35)] md:grid-cols-[1.15fr_1fr]">
-        <VideoPlaceholder variant="hero" />
-
-        <div className="flex flex-col justify-center py-2">
-          <p className="mb-4.5 font-heading text-lg font-semibold text-[#ace044]">
-            What&apos;s really costing you clients
-          </p>
-          {chapters.map((chap) => (
-            <div
-              key={chap.num}
-              className="flex items-baseline gap-4 border-b border-white/10 py-3"
-            >
-              <span className="min-w-7 font-heading text-lg font-bold text-[#bafc0c]">
-                {chap.num}
-              </span>
-              <span className="text-[15px] text-[#f0f0f0]">{chap.title}</span>
+      <div className="mx-auto max-w-full overflow-hidden rounded-2xl border border-[#65891c]/40 bg-[#15181d] shadow-[0_10px_30px_rgba(0,0,0,0.35)]">
+        <div className="relative aspect-video w-full overflow-hidden bg-[radial-gradient(circle_at_30%_20%,#1f2530,#0f1215)]">
+          <div className="absolute top-4 left-4 flex items-center gap-1.5 rounded-full border border-white/15 bg-[#0f1215]/70 px-3.5 py-1.5 text-xs tracking-wide text-white uppercase backdrop-blur-sm">
+            <Volume2 size={13} /> Tap for Sound
+          </div>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="flex size-20 items-center justify-center rounded-full border border-[#bafc0c]/60 bg-[#0f1215]/60">
+              <Play size={28} className="text-[#bafc0c]" />
             </div>
-          ))}
+          </div>
         </div>
       </div>
 

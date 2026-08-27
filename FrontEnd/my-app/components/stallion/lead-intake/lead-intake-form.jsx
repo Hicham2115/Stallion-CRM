@@ -7,7 +7,6 @@ import { toast } from "sonner";
 import {
   User,
   Building2,
-  ClipboardCheck,
   Target,
   ArrowLeft,
   ArrowRight,
@@ -18,7 +17,6 @@ import { Button } from "@/components/ui/button";
 import { ProgressIndicator } from "@/components/stallion/lead-intake/progress-indicator";
 import { StepContact } from "@/components/stallion/lead-intake/steps/step-contact";
 import { StepBusiness } from "@/components/stallion/lead-intake/steps/step-business";
-import { StepReview } from "@/components/stallion/lead-intake/steps/step-review";
 import { StepBant } from "@/components/stallion/lead-intake/steps/step-bant";
 import { useAdAttribution } from "@/lib/use-ad-attribution";
 import { api } from "@/lib/axios";
@@ -58,13 +56,6 @@ const STEPS = [
     icon: Building2,
     schema: stepBusinessSchema,
     Component: StepBusiness,
-  },
-  {
-    key: "review",
-    label: "Review",
-    icon: ClipboardCheck,
-    schema: null,
-    Component: StepReview,
   },
   {
     key: "bant",

@@ -65,6 +65,12 @@ export const stepContactSchema = z.object({
   }),
 });
 
+/** Entry-gate capture — just enough to identify a visitor before they browse the site. */
+export const gateLeadSchema = stepContactSchema.pick({
+  full_name: true,
+  email: true,
+});
+
 export const stepBusinessSchema = z.object({
   business_type: z.string().trim().min(2, "Tell us your business type"),
   product_type: z.enum(PRODUCT_TYPES, { message: "Select a project type" }),
