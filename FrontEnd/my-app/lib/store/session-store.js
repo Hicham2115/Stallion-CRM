@@ -22,6 +22,16 @@ export const useSessionStore = create(
       clearSession: () =>
         set({ role: null, clientLeadId: null, repId: null, token: null }),
     }),
-    { name: "stallion-session" },
+    {
+      name: "stallion-session",
+      // localStorage reads resolve synchronously inside zustand's persist,
+      // so without this the store would already hold the real session by
+      // the time React hydrates — different from what the server rendered
+      // (no localStorage there) and a guaranteed hydration mismatch.
+      // useSessionHydrated() below calls persist.rehydrate() in an effect,
+      // safely after the client's first render is reconciled against the
+      // server's.
+      skipHydration: true,
+    },
   ),
 );
