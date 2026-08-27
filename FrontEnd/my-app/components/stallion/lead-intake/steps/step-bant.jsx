@@ -58,7 +58,7 @@ export function StepBant({
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex min-w-0 flex-col gap-5">
       <div>
         <h3 className="font-heading text-lg font-bold text-white">
           Let&apos;s talk scope
@@ -112,7 +112,7 @@ export function StepBant({
         }}
       >
         {(field) => (
-          <div className="flex flex-col gap-1.5">
+          <div className="flex min-w-0 flex-col gap-1.5">
             <Label htmlFor="need_description">
               <MessageSquare className="size-3.5 text-white/40" /> What problem
               are you solving?

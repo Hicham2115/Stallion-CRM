@@ -60,7 +60,7 @@ function Field({ icon: Icon, label, value }) {
 
 function Section({ title, children }) {
   return (
-    <div className="rounded-xl border border-hairline bg-white/[0.02] p-4">
+    <div className="min-w-0 rounded-xl border border-hairline bg-white/[0.02] p-4">
       <p className="mb-3 font-mono text-[0.625rem] uppercase tracking-[0.16em] text-ink-muted">
         {title}
       </p>
@@ -90,8 +90,8 @@ export function LeadDetailsDialog({ lead, open, onOpenChange }) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-3xl gap-0 p-0">
-        <div className="max-h-[85vh] overflow-y-auto p-6">
+      <DialogContent className="min-w-0 sm:max-w-3xl gap-0 p-0">
+        <div className="max-h-[85vh] min-w-0 overflow-y-auto p-6">
           <DialogHeader className="flex-row items-center gap-3.5 space-y-0 text-left">
             <span
               aria-hidden
@@ -124,7 +124,7 @@ export function LeadDetailsDialog({ lead, open, onOpenChange }) {
             )}
           </div>
 
-          <div className="mt-5 flex flex-col gap-3">
+          <div className="mt-5 flex min-w-0 flex-col gap-3">
             <Section title="Contact">
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
                 <Field icon={Mail} label="Email" value={lead.email} />
@@ -154,11 +154,11 @@ export function LeadDetailsDialog({ lead, open, onOpenChange }) {
               </div>
 
               {lead.need_description && (
-                <div className="mt-4 border-t border-hairline pt-4">
+                <div className="mt-4 min-w-0 border-t border-hairline pt-4">
                   <p className="font-mono text-[0.625rem] uppercase tracking-[0.14em] text-ink-muted">
                     Need description
                   </p>
-                  <p className="mt-1.5 text-[0.875rem] leading-relaxed text-ink-soft">
+                  <p className="mt-1.5 wrap-anywhere text-[0.875rem] leading-relaxed text-ink-soft">
                     {lead.need_description}
                   </p>
                 </div>
