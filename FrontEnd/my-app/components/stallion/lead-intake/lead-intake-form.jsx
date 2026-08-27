@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useForm } from "@tanstack/react-form";
+import { useMutation } from "@tanstack/react-query";
+import { toast } from "sonner";
 import {
   User,
   Building2,
@@ -18,14 +20,29 @@ import { StepContact } from "@/components/stallion/lead-intake/steps/step-contac
 import { StepBusiness } from "@/components/stallion/lead-intake/steps/step-business";
 import { StepReview } from "@/components/stallion/lead-intake/steps/step-review";
 import { StepBant } from "@/components/stallion/lead-intake/steps/step-bant";
-import { useSubmitLead } from "@/hooks/use-submit-lead";
 import { useAdAttribution } from "@/lib/use-ad-attribution";
+import { api } from "@/lib/axios";
+import { getErrorMessage } from "@/lib/get-error-message";
 import {
   stepContactSchema,
   stepBusinessSchema,
   stepBantSchema,
   leadSchema,
 } from "@/lib/validations/lead";
+
+function buildLeadFormData(values, briefFile) {
+  const formData = new FormData();
+  for (const [key, value] of Object.entries(values)) {
+    if (key === "attribution") {
+      formData.append("attribution", JSON.stringify(value ?? {}));
+      continue;
+    }
+    if (value === undefined || value === null) continue;
+    formData.append(key, String(value));
+  }
+  if (briefFile) formData.append("brief_file", briefFile);
+  return formData;
+}
 
 const STEPS = [
   {
@@ -77,7 +94,20 @@ export function LeadIntakeForm({ onSubmitted }) {
   const [briefFile, setBriefFile] = useState(null);
   const [fileError, setFileError] = useState(null);
   const attribution = useAdAttribution();
-  const submitLead = useSubmitLead();
+
+  const submitLead = useMutation({
+    mutationFn: async ({ values, briefFile }) => {
+      const formData = buildLeadFormData(values, briefFile);
+      const { data } = await api.post("/api/leads", formData);
+      return data;
+    },
+    onSuccess: () => {
+      toast.success("Got it — we'll be in touch shortly.");
+    },
+    onError: (error) => {
+      toast.error(getErrorMessage(error));
+    },
+  });
 
   const form = useForm({
     defaultValues: DEFAULT_VALUES,
@@ -85,6 +115,7 @@ export function LeadIntakeForm({ onSubmitted }) {
       const payload = { ...value, attribution };
       const parsed = leadSchema.safeParse(payload);
       if (!parsed.success) return;
+      console.log("Submitting lead:", parsed.data, briefFile);
 
       await submitLead.mutateAsync(
         { values: parsed.data, briefFile },

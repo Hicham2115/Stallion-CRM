@@ -28,7 +28,7 @@ class StoreLeadRequest extends FormRequest
         return [
             'full_name' => ['required', 'string', 'min:2', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255'],
-            'phone' => ['required', 'string', 'regex:/^\+[1-9]\d{1,14}$/'],
+            'phone' => ['required', 'string', 'min:7'],
             'role' => ['nullable', 'string', 'max:80'],
             'is_decision_maker' => ['required', 'boolean'],
 

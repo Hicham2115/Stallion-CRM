@@ -1,8 +1,17 @@
 import { Building2, LayoutGrid } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { stepBusinessSchema, trackForProductType } from "@/lib/validations/lead";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  stepBusinessSchema,
+  trackForProductType,
+} from "@/lib/validations/lead";
 
 const PRODUCT_TYPE_LABELS = {
   static_website: "Static website",
@@ -22,13 +31,21 @@ export function StepBusiness({ form }) {
   return (
     <div className="flex flex-col gap-5">
       <div>
-        <h3 className="font-heading text-lg font-bold text-white">What are we building?</h3>
-        <p className="mt-1 text-sm text-white/50">A quick sense of the business and the project.</p>
+        <h3 className="font-heading text-lg font-bold text-white">
+          What are we building?
+        </h3>
+        <p className="mt-1 text-sm text-white/50">
+          A quick sense of the business and the project.
+        </p>
       </div>
 
       <form.Field
         name="business_type"
-        validators={{ onChange: ({ value }) => stepBusinessSchema.shape.business_type.safeParse(value).error?.issues[0]?.message }}
+        validators={{
+          onChange: ({ value }) =>
+            stepBusinessSchema.shape.business_type.safeParse(value).error
+              ?.issues[0]?.message,
+        }}
       >
         {(field) => (
           <div className="flex flex-col gap-1.5">
@@ -43,7 +60,9 @@ export function StepBusiness({ form }) {
               placeholder="e.g. Real estate agency"
               className="h-11 bg-white/[0.03] text-[15px]"
             />
-            {fieldError(field) && <p className="text-xs text-red-400">{fieldError(field)}</p>}
+            {fieldError(field) && (
+              <p className="text-xs text-red-400">{fieldError(field)}</p>
+            )}
           </div>
         )}
       </form.Field>
@@ -61,7 +80,10 @@ export function StepBusiness({ form }) {
                 form.setFieldValue("track", trackForProductType(value));
               }}
             >
-              <SelectTrigger id="product_type" className="h-11 w-full bg-white/[0.03] text-[15px]">
+              <SelectTrigger
+                id="product_type"
+                className="h-11 w-full bg-white/[0.03] text-[15px]"
+              >
                 <SelectValue placeholder="Select a project type" />
               </SelectTrigger>
               <SelectContent>

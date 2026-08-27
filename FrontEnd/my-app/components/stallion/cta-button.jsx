@@ -2,7 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { useLeadIntake } from "@/components/stallion/lead-intake/lead-intake-context";
 export function CtaButton({ children, onClick }) {
-  const { setOpen } = useLeadIntake();
+  const setOpen = useLeadIntake((s) => s.setOpen);
   return (
     <Button
       onClick={(e) => {

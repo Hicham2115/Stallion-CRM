@@ -3,28 +3,35 @@
 import { useState } from "react";
 
 const STORAGE_KEY = "stallion:attribution";
-const UTM_KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"];
+const TRACKED_KEYS = [
+  "utm_source",
+  "utm_medium",
+  "utm_campaign",
+  "utm_content",
+  "utm_term",
+  "gclid",
+  "fbclid",
+];
 
 function readAttribution() {
   if (typeof window === "undefined") return {};
 
   const params = new URLSearchParams(window.location.search);
+ 
   const fromUrl = {};
-  for (const key of UTM_KEYS) {
-    if (params.get(key)) fromUrl[key] = params.get(key);
-  }
-  if (params.get("gclid")) fromUrl.gclid = params.get("gclid");
-  if (params.get("fbclid")) fromUrl.fbclid = params.get("fbclid");
 
-  const hasNewClick = Object.keys(fromUrl).length > 0;
-  let stored = {};
-  try {
-    stored = JSON.parse(window.sessionStorage.getItem(STORAGE_KEY) || "{}");
-  } catch {
-    stored = {};
+  for (const key of TRACKED_KEYS) {
+    const value = params.get(key);
+    if (value) fromUrl[key] = value;
   }
 
-  if (!hasNewClick) return stored;
+  if (Object.keys(fromUrl).length === 0) {
+    try {
+      return JSON.parse(window.sessionStorage.getItem(STORAGE_KEY) || "{}");
+    } catch {
+      return {};
+    }
+  }
 
   const merged = {
     ...fromUrl,

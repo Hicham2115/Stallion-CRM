@@ -1,8 +1,25 @@
-import { DollarSign, MessageSquare, CalendarClock, Paperclip, X } from "lucide-react";
+import {
+  DollarSign,
+  MessageSquare,
+  CalendarClock,
+  Paperclip,
+  X,
+} from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { stepBantSchema, BUDGET_BANDS_BY_TRACK, DESIRED_LAUNCH_OPTIONS, validateBriefFile } from "@/lib/validations/lead";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  stepBantSchema,
+  BUDGET_BANDS_BY_TRACK,
+  DESIRED_LAUNCH_OPTIONS,
+  validateBriefFile,
+} from "@/lib/validations/lead";
 
 const LAUNCH_LABELS = {
   asap: "ASAP",
@@ -17,7 +34,13 @@ function fieldError(field) {
   return field.state.meta.isTouched && error ? error : null;
 }
 
-export function StepBant({ form, briefFile, onBriefFileChange, fileError, onFileErrorChange }) {
+export function StepBant({
+  form,
+  briefFile,
+  onBriefFileChange,
+  fileError,
+  onFileErrorChange,
+}) {
   const track = form.state.values.track;
   const budgetOptions = BUDGET_BANDS_BY_TRACK[track] ?? [];
 
@@ -37,14 +60,20 @@ export function StepBant({ form, briefFile, onBriefFileChange, fileError, onFile
   return (
     <div className="flex flex-col gap-5">
       <div>
-        <h3 className="font-heading text-lg font-bold text-white">Let&apos;s talk scope</h3>
-        <p className="mt-1 text-sm text-white/50">Helps us route this to the right person, fast.</p>
+        <h3 className="font-heading text-lg font-bold text-white">
+          Let&apos;s talk scope
+        </h3>
+        <p className="mt-1 text-sm text-white/50">
+          Helps us route this to the right person, fast.
+        </p>
       </div>
 
       <form.Field
         name="budget_band"
         validators={{
-          onChange: ({ value }) => stepBantSchema.shape.budget_band.safeParse(value).error?.issues[0]?.message,
+          onChange: ({ value }) =>
+            stepBantSchema.shape.budget_band.safeParse(value).error?.issues[0]
+              ?.message,
         }}
       >
         {(field) => (
@@ -52,8 +81,14 @@ export function StepBant({ form, briefFile, onBriefFileChange, fileError, onFile
             <Label htmlFor="budget_band">
               <DollarSign className="size-3.5 text-white/40" /> Budget range
             </Label>
-            <Select value={field.state.value} onValueChange={(value) => field.handleChange(value)}>
-              <SelectTrigger id="budget_band" className="h-11 w-full bg-white/[0.03] text-[15px]">
+            <Select
+              value={field.state.value}
+              onValueChange={(value) => field.handleChange(value)}
+            >
+              <SelectTrigger
+                id="budget_band"
+                className="h-11 w-full bg-white/[0.03] text-[15px]"
+              >
                 <SelectValue placeholder="Select a budget range" />
               </SelectTrigger>
               <SelectContent>
@@ -71,13 +106,16 @@ export function StepBant({ form, briefFile, onBriefFileChange, fileError, onFile
       <form.Field
         name="need_description"
         validators={{
-          onChange: ({ value }) => stepBantSchema.shape.need_description.safeParse(value).error?.issues[0]?.message,
+          onChange: ({ value }) =>
+            stepBantSchema.shape.need_description.safeParse(value).error
+              ?.issues[0]?.message,
         }}
       >
         {(field) => (
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="need_description">
-              <MessageSquare className="size-3.5 text-white/40" /> What problem are you solving?
+              <MessageSquare className="size-3.5 text-white/40" /> What problem
+              are you solving?
             </Label>
             <Textarea
               id="need_description"
@@ -88,7 +126,9 @@ export function StepBant({ form, briefFile, onBriefFileChange, fileError, onFile
               placeholder="Tell us what's not working today..."
               className="bg-white/[0.03] text-[15px]"
             />
-            {fieldError(field) && <p className="text-xs text-red-400">{fieldError(field)}</p>}
+            {fieldError(field) && (
+              <p className="text-xs text-red-400">{fieldError(field)}</p>
+            )}
           </div>
         )}
       </form.Field>
@@ -96,16 +136,25 @@ export function StepBant({ form, briefFile, onBriefFileChange, fileError, onFile
       <form.Field
         name="desired_launch"
         validators={{
-          onChange: ({ value }) => stepBantSchema.shape.desired_launch.safeParse(value).error?.issues[0]?.message,
+          onChange: ({ value }) =>
+            stepBantSchema.shape.desired_launch.safeParse(value).error
+              ?.issues[0]?.message,
         }}
       >
         {(field) => (
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="desired_launch">
-              <CalendarClock className="size-3.5 text-white/40" /> Desired launch
+              <CalendarClock className="size-3.5 text-white/40" /> Desired
+              launch
             </Label>
-            <Select value={field.state.value} onValueChange={(value) => field.handleChange(value)}>
-              <SelectTrigger id="desired_launch" className="h-11 w-full bg-white/[0.03] text-[15px]">
+            <Select
+              value={field.state.value}
+              onValueChange={(value) => field.handleChange(value)}
+            >
+              <SelectTrigger
+                id="desired_launch"
+                className="h-11 w-full bg-white/[0.03] text-[15px]"
+              >
                 <SelectValue placeholder="Select a timeline" />
               </SelectTrigger>
               <SelectContent>

@@ -13,10 +13,19 @@ const LOW_TICKET_PRODUCT_TYPES = ["static_website", "online_store", "crm"];
 
 /** static_website/online_store/crm -> low_ticket, platform/mobile_app/saas -> high_ticket */
 export function trackForProductType(productType) {
-  return LOW_TICKET_PRODUCT_TYPES.includes(productType) ? "low_ticket" : "high_ticket";
+  return LOW_TICKET_PRODUCT_TYPES.includes(productType)
+    ? "low_ticket"
+    : "high_ticket";
 }
 
-export const BUDGET_BANDS = ["<5k", "5-15k", "15-40k", "40-80k", "80-200k", "200k+"];
+export const BUDGET_BANDS = [
+  "<5k",
+  "5-15k",
+  "15-40k",
+  "40-80k",
+  "80-200k",
+  "200k+",
+];
 
 /** Which budget bands make sense to offer for each track. */
 export const BUDGET_BANDS_BY_TRACK = {
@@ -24,9 +33,14 @@ export const BUDGET_BANDS_BY_TRACK = {
   high_ticket: ["15-40k", "40-80k", "80-200k", "200k+"],
 };
 
-export const DESIRED_LAUNCH_OPTIONS = ["asap", "1-3mo", "3-6mo", "6mo+", "exploring"];
+export const DESIRED_LAUNCH_OPTIONS = [
+  "asap",
+  "1-3mo",
+  "3-6mo",
+  "6mo+",
+  "exploring",
+];
 
-const E164_REGEX = /^\+[1-9]\d{1,14}$/;
 const MAX_BRIEF_FILE_BYTES = 10 * 1024 * 1024;
 export const ACCEPTED_BRIEF_FILE_TYPES = [
   "application/pdf",
@@ -39,12 +53,16 @@ export const ACCEPTED_BRIEF_FILE_TYPES = [
 export const stepContactSchema = z.object({
   full_name: z.string().trim().min(2, "Enter your full name"),
   email: z.string().trim().email("Enter a valid email address"),
-  phone: z
+  phone: z.string().trim().min(7, "Enter a valid phone number"),
+  role: z
     .string()
     .trim()
-    .regex(E164_REGEX, "Use E.164 format, e.g. +15551234567"),
-  role: z.string().trim().max(80, "Keep it under 80 characters").optional().or(z.literal("")),
-  is_decision_maker: z.boolean({ message: "Let us know if you're the decision maker" }),
+    .max(80, "Keep it under 80 characters")
+    .optional()
+    .or(z.literal("")),
+  is_decision_maker: z.boolean({
+    message: "Let us know if you're the decision maker",
+  }),
 });
 
 export const stepBusinessSchema = z.object({
@@ -59,7 +77,9 @@ export const stepBantSchema = z.object({
     .trim()
     .min(10, "Give us a bit more detail (10+ characters)")
     .max(2000, "Keep it under 2000 characters"),
-  desired_launch: z.enum(DESIRED_LAUNCH_OPTIONS, { message: "Select a timeline" }),
+  desired_launch: z.enum(DESIRED_LAUNCH_OPTIONS, {
+    message: "Select a timeline",
+  }),
 });
 
 /** Optional brief file — validated separately since it never travels through JSON. */
