@@ -100,7 +100,7 @@ export function LeadIntakeForm({ onSubmitted }) {
       const formData = buildLeadFormData(values, briefFile);
       const { data } = await api.post("/api/leads", formData);
       return data;
-    },
+    },  
     onSuccess: () => {
       toast.success("Got it — we'll be in touch shortly.");
     },
