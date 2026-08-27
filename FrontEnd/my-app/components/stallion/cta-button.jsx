@@ -1,0 +1,17 @@
+"use client";
+import { Button } from "@/components/ui/button";
+import { useLeadIntake } from "@/components/stallion/lead-intake/lead-intake-context";
+export function CtaButton({ children, onClick }) {
+  const setOpen = useLeadIntake((s) => s.setOpen);
+  return (
+    <Button
+      onClick={(e) => {
+        onClick?.(e);
+        setOpen(true);
+      }}
+      className="h-auto rounded-xl bg-gradient-to-r from-[#65891c] to-[#7a9e2a] px-11 py-[19px] text-[15px] font-extrabold tracking-wide text-white uppercase shadow-[0_0_30px_rgba(186,252,12,0.3),0_10px_30px_rgba(0,0,0,0.35)] hover:opacity-90"
+    >
+      {children}
+    </Button>
+  );
+}
