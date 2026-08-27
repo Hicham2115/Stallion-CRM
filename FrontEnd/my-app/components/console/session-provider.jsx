@@ -21,15 +21,19 @@ export function useSession() {
 // `true` before trusting `useSession()` — otherwise every visitor briefly
 // looks like the default role and gets redirected, then corrected.
 export function useSessionHydrated() {
+  // `.persist` only exists once the store is created with `window` around —
+  // on the server render of this "use client" component there is no
+  // `window`, so zustand skips attaching it. Always start false there and
+  // let the effect (browser-only) pick up the real value.
   const [hydrated, setHydrated] = useState(
-    () => useSessionStore.persist.hasHydrated(),
+    () => useSessionStore.persist?.hasHydrated() ?? false,
   );
   useEffect(() => {
-    if (useSessionStore.persist.hasHydrated()) {
+    if (useSessionStore.persist?.hasHydrated()) {
       setHydrated(true);
       return;
     }
-    return useSessionStore.persist.onFinishHydration(() => setHydrated(true));
+    return useSessionStore.persist?.onFinishHydration(() => setHydrated(true));
   }, []);
   return hydrated;
 }
