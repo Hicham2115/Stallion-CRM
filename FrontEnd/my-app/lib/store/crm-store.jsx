@@ -37,6 +37,18 @@ function reducer(state, action) {
             // Newest first, so a client added from the dialog appears at the top of
             // the table where the user is looking, not buried on page four.
             return Object.assign(Object.assign({}, state), { leads: [action.lead, ...state.leads] });
+        // A dev's project list is real leads now (LeadController's developer
+        // scoping), but step/preview/live-URL tracking is deliberately still
+        // local-only (see config/dev.js) — no backend for it exists yet. This
+        // lazily gives a real lead a local delivery record, keyed by its real
+        // id, the first time a dev opens it, so the existing mock-backed
+        // StepList/PreviewManager/LiveSitePanel/UpdateComposer keep working
+        // unchanged and the client portal (reading the same `state.leads`)
+        // can still show progress for that id. A no-op if one already exists.
+        case "project/ensured":
+            if (state.leads.some((lead) => lead.id === action.lead.id))
+                return state;
+            return Object.assign(Object.assign({}, state), { leads: [...state.leads, action.lead] });
         case "lead/updated":
             return Object.assign(Object.assign({}, state), { leads: state.leads.map((lead) => lead.id === action.lead.id ? action.lead : lead) });
         case "lead/removed":
@@ -322,6 +334,33 @@ export function CrmProvider({ children }) {
             if (result.ok)
                 dispatch({ type: "lead/updated", lead: result.data });
             return result;
+        },
+        /** See "project/ensured" above — sync, local-only, no API call. */
+        ensureProject({ id, name, company, projectSummary = null }) {
+            dispatch({
+                type: "project/ensured",
+                lead: {
+                    id,
+                    name,
+                    company,
+                    phone: null,
+                    email: null,
+                    source: null,
+                    stageId: null,
+                    assignedRepId: null,
+                    daysInStage: 0,
+                    createdDaysAgo: 0,
+                    notes: [],
+                    activity: [],
+                    milestones: [],
+                    files: [],
+                    invoices: [],
+                    projectSummary,
+                    previews: [],
+                    liveUrl: null,
+                    updates: [],
+                },
+            });
         },
         resetDemoData() {
             clearPersistedState();

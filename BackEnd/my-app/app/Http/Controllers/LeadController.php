@@ -19,6 +19,10 @@ class LeadController extends Controller
      * used only by /rep/pipeline (LivePipelineBoard's `mine` prop) — that's
      * the one screen meant to be a private per-rep working queue; Clients
      * is a shared, company-wide list on both admin and rep.
+     *
+     * A `dev` user is always scoped, unconditionally — unlike a rep's
+     * `mine`, there's no company-wide "all projects" screen a developer is
+     * meant to see, so this isn't optional the way `mine` is.
      */
     public function index(Request $request)
     {
@@ -32,6 +36,7 @@ class LeadController extends Controller
         // column — no separate "list users" endpoint exists yet.
         $leads = Lead::with(['attribution', 'stageHistory', 'assignedSales:id,name', 'developers:id,name'])
             ->when($mine && $user->role === 'sales', fn ($q) => $q->where('assigned_sales_id', $user->id))
+            ->when($user->role === 'dev', fn ($q) => $q->whereHas('developers', fn ($dq) => $dq->where('users.id', $user->id)))
             ->orderByDesc('created_at')
             ->get();
 

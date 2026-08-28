@@ -26,7 +26,7 @@ Route::patch('/profile/password', [ProfileController::class, 'updatePassword'])-
 Route::get('/dials/today', [DialLogController::class, 'today'])->middleware(['auth:sanctum', 'role:sales']);
 Route::patch('/dials/today', [DialLogController::class, 'updateToday'])->middleware(['auth:sanctum', 'role:sales']);
 
-Route::get('/leads', [LeadController::class, 'index'])->middleware(['auth:sanctum', 'role:admin,sales']);
+Route::get('/leads', [LeadController::class, 'index'])->middleware(['auth:sanctum', 'role:admin,sales,dev']);
 Route::patch('/leads/{lead}/stage', [LeadController::class, 'updateStage'])->middleware(['auth:sanctum', 'role:admin,sales']);
 // Prompt 4: same gate as everything else on this resource — no separate
 // dev permission tier exists to reuse for the MVP fields specifically. See

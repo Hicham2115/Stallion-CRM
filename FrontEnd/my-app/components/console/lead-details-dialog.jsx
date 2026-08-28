@@ -232,22 +232,36 @@ function LeadDetailsContent({ lead }) {
     setForm((f) => ({ ...f, [key]: value }));
   }
 
-  function handleSave() {
-    save.mutate({
-      consult_scheduled_for: form.consult_scheduled_for || null,
-      consult_attended: form.consult_attended,
-      consult_outcome: form.consult_outcome || null,
-      needs_second_meeting: form.needs_second_meeting,
-      second_meeting_scheduled_for: form.second_meeting_scheduled_for || null,
-      second_meeting_outcome_good: form.second_meeting_outcome_good,
-      mvp_type: form.mvp_type || null,
-      mvp_deadline: form.mvp_deadline || null,
-      mvp_delivered_at: form.mvp_delivered_at || null,
-      closing_meeting_scheduled_for: form.closing_meeting_scheduled_for || null,
-      closing_meeting_attended: form.closing_meeting_attended,
-      deposit_collected: form.deposit_collected,
-      project_cost: form.project_cost === "" ? null : Number(form.project_cost),
-    });
+  async function handleSave() {
+    try {
+      await Promise.all([
+        save.mutateAsync({
+          consult_scheduled_for: form.consult_scheduled_for || null,
+          consult_attended: form.consult_attended,
+          consult_outcome: form.consult_outcome || null,
+          needs_second_meeting: form.needs_second_meeting,
+          second_meeting_scheduled_for: form.second_meeting_scheduled_for || null,
+          second_meeting_outcome_good: form.second_meeting_outcome_good,
+          mvp_type: form.mvp_type || null,
+          mvp_deadline: form.mvp_deadline || null,
+          mvp_delivered_at: form.mvp_delivered_at || null,
+          closing_meeting_scheduled_for: form.closing_meeting_scheduled_for || null,
+          closing_meeting_attended: form.closing_meeting_attended,
+          deposit_collected: form.deposit_collected,
+          project_cost: form.project_cost === "" ? null : Number(form.project_cost),
+        }),
+        // Only sent when the picker actually changed something worth
+        // writing — an admin who never touched it shouldn't fire a
+        // no-op sync every time they save the rest of the form.
+        isAdmin && form.developer_id !== (lead.developers?.[0]?.id ?? null)
+          ? assignDeveloper.mutateAsync(form.developer_id)
+          : Promise.resolve(),
+      ]);
+      toast.success("Saved");
+      queryClient.invalidateQueries({ queryKey: ["leads"] });
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+    }
   }
 
   return (
@@ -641,14 +655,20 @@ function LeadDetailsContent({ lead }) {
               <Section title="Delivery">
                 <EditRow label="Assigned developer">
                   <Select
-                    value={lead.developers?.[0]?.id ? String(lead.developers[0].id) : "unassigned"}
+                    value={form.developer_id ? String(form.developer_id) : "unassigned"}
                     onValueChange={(v) =>
-                      assignDeveloper.mutate(v === "unassigned" ? null : Number(v))
+                      set("developer_id", v === "unassigned" ? null : Number(v))
                     }
-                    disabled={assignDeveloper.isPending}
+                    disabled={saving}
                   >
                     <SelectTrigger className="h-10 w-full sm:w-64">
-                      <SelectValue placeholder="Unassigned" />
+                      <SelectValue>
+                        {(value) =>
+                          value === "unassigned" || !value
+                            ? "Unassigned"
+                            : developers.find((dev) => String(dev.id) === value)?.name ?? "Unassigned"
+                        }
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="unassigned">Unassigned</SelectItem>
@@ -667,11 +687,11 @@ function LeadDetailsContent({ lead }) {
               <div className="flex justify-end">
                 <Button
                   type="button"
-                  disabled={save.isPending}
+                  disabled={saving}
                   onClick={handleSave}
                   className="h-10"
                 >
-                  {save.isPending ? "Saving…" : "Save workflow fields"}
+                  {saving ? "Saving…" : "Save workflow fields"}
                 </Button>
               </div>
             )}
