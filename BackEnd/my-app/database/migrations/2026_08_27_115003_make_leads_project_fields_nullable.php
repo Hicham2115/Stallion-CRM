@@ -21,8 +21,19 @@ return new class extends Migration
             $table->string('desired_launch')->nullable()->change();
         });
 
-        // Enum columns via ->change() are unreliable across Laravel/Doctrine versions.
-        DB::statement("ALTER TABLE leads MODIFY track ENUM('low_ticket', 'high_ticket') NULL");
+        // Enum columns via ->change() are unreliable on mysql across
+        // Laravel/Doctrine versions, hence the raw statement — but that
+        // exact syntax is mysql-only and breaks the sqlite connection tests
+        // run on (phpunit.xml). sqlite has no real ENUM type regardless
+        // (Schema::enum() there is just a plain column), so ->change() is
+        // both correct and safe on that driver.
+        if (DB::connection()->getDriverName() === 'sqlite') {
+            Schema::table('leads', function (Blueprint $table) {
+                $table->enum('track', ['low_ticket', 'high_ticket'])->nullable()->change();
+            });
+        } else {
+            DB::statement("ALTER TABLE leads MODIFY track ENUM('low_ticket', 'high_ticket') NULL");
+        }
     }
 
     /**
@@ -39,6 +50,12 @@ return new class extends Migration
             $table->string('desired_launch')->nullable(false)->change();
         });
 
-        DB::statement("ALTER TABLE leads MODIFY track ENUM('low_ticket', 'high_ticket') NOT NULL");
+        if (DB::connection()->getDriverName() === 'sqlite') {
+            Schema::table('leads', function (Blueprint $table) {
+                $table->enum('track', ['low_ticket', 'high_ticket'])->nullable(false)->change();
+            });
+        } else {
+            DB::statement("ALTER TABLE leads MODIFY track ENUM('low_ticket', 'high_ticket') NOT NULL");
+        }
     }
 };

@@ -11,6 +11,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'utm_source',
     'utm_medium',
     'utm_campaign',
+    'ad_set',
+    'creative_id',
     'utm_content',
     'utm_term',
     'gclid',

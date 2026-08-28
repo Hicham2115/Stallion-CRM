@@ -1,21 +1,18 @@
 "use client";
 import { useState } from "react";
-import { Columns3, Filter, Columns2 } from "lucide-react";
+import { Columns3, Filter } from "lucide-react";
 import { FunnelView } from "@/components/admin/pipeline/funnel-view";
-import { PipelineBoard } from "@/components/admin/pipeline/pipeline-board";
-import { EmptyState } from "@/components/deck/empty-state";
-import { Panel } from "@/components/deck/panel";
+import { LivePipelineBoard } from "@/components/admin/pipeline/live-pipeline-board";
 import { SegmentedControl } from "@/components/deck/segmented-control";
 import { boardConfig } from "@/config/board";
-import { useCrm } from "@/lib/store/crm-store";
 import { PageShell } from "@/components/console/page-shell";
 const { content, features } = boardConfig;
-// Two views over one dataset, not a filter of one another — a view switch,
-// not a toggle that hides columns.
+// Kanban is the real pipeline now (leads.stage, live from the API — see
+// LivePipelineBoard). Funnel stays on the mock crm-store — the switch is
+// disabled via boardConfig.features.funnelView until it's wired to real
+// data, not removed here.
 export function PipelineView() {
-    const { state } = useCrm();
     const [view, setView] = useState(boardConfig.defaultView);
-    const empty = state.leads.length === 0;
     return (<PageShell>
       {features.funnelView && (<div className="flex flex-wrap items-center justify-between gap-3">
           <SegmentedControl label={content.viewSwitchLabel} value={view} onValueChange={setView} options={[
@@ -32,8 +29,6 @@ export function PipelineView() {
             ]}/>
         </div>)}
 
-      {empty ? (<Panel>
-          <EmptyState icon={Columns2} title={content.emptyBoardTitle} description={content.emptyBoardDescription}/>
-        </Panel>) : view === "funnel" && features.funnelView ? (<FunnelView />) : (<PipelineBoard />)}
+      {view === "funnel" && features.funnelView ? <FunnelView /> : <LivePipelineBoard />}
     </PageShell>);
 }

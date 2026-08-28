@@ -5,7 +5,9 @@ export const repConfig = {
         clusterRuler: true,
         leadsByStage: true,
         clientsPanel: true,
-        funnelView: true,
+        // Disabled — same reason as boardConfig.features.funnelView on the
+        // admin side: still on the mock crm-store, not real data.
+        funnelView: false,
         addClient: true,
         search: true,
         chat: true,
@@ -108,8 +110,8 @@ export const repConfig = {
             clearSearch: "Clear search",
         },
         pipeline: {
-            emptyTitle: "Your pipeline is empty",
-            emptyDescription: "Leads assigned to you appear here. Add one from My Clients, or ask your manager to assign you some.",
+            emptyTitle: "The pipeline is empty",
+            emptyDescription: "Leads submitted from the site, or added from My Clients, show up here.",
         },
         chat: {
             title: "Your manager",

@@ -8,17 +8,196 @@ use App\Models\LeadSegmentation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class LeadController extends Controller
 {
-    public function index()
+    /**
+     * Unscoped by default — a sales user sees the same Clients list as
+     * admin. `?mine=1` narrows to assigned_sales_id = the signed-in rep,
+     * used only by /rep/pipeline (LivePipelineBoard's `mine` prop) — that's
+     * the one screen meant to be a private per-rep working queue; Clients
+     * is a shared, company-wide list on both admin and rep.
+     */
+    public function index(Request $request)
     {
-        $leads = Lead::with('attribution')
+        $user = $request->user();
+        $mine = $request->boolean('mine');
+
+        // stageHistory eager-loaded here (not a separate endpoint) because
+        // the Lead Details dialog reads straight off the lead object it
+        // already has from this list — see LeadStageHistory. assignedSales
+        // (name only) is here for the Reports CSV export's "Assigned rep"
+        // column — no separate "list users" endpoint exists yet.
+        $leads = Lead::with(['attribution', 'stageHistory', 'assignedSales:id,name', 'developers:id,name'])
+            ->when($mine && $user->role === 'sales', fn ($q) => $q->where('assigned_sales_id', $user->id))
             ->orderByDesc('created_at')
             ->get();
 
         return response()->json($leads);
+    }
+
+    /** A sales user may only act on their own leads — the list endpoint
+     *  already hides everyone else's, but stage/workflow updates are
+     *  reached by lead id directly and need their own check. Admin is
+     *  unrestricted. */
+    private function assertOwnsLead(Request $request, Lead $lead): void
+    {
+        $user = $request->user();
+
+        if ($user->role === 'sales' && $lead->assigned_sales_id !== $user->id) {
+            abort(403, 'This lead is not assigned to you.');
+        }
+    }
+
+    /**
+     * Drag-and-drop entry point for the pipeline board. Only `stage` (and
+     * `lost_reason`, when moving to "lost") are writable here — everything
+     * else about a lead is edited elsewhere. Timestamp stamping, track
+     * derivation and the "lost needs a reason" rule all live in
+     * LeadObserver::saving(), so this stays a thin pass-through to it.
+     */
+    public function updateStage(Request $request, Lead $lead)
+    {
+        $this->assertOwnsLead($request, $lead);
+
+        $data = $request->validate([
+            'stage' => ['required', 'string', 'in:'.implode(',', Lead::STAGES)],
+            'lost_reason' => ['nullable', 'string', 'in:'.implode(',', Lead::LOST_REASONS)],
+        ]);
+
+        $lead->stage = $data['stage'];
+        if (array_key_exists('lost_reason', $data)) {
+            $lead->lost_reason = $data['lost_reason'];
+        }
+
+        // Not caught here: a ValidationException from the "lost needs a
+        // reason" guard in LeadObserver is meant to reach the client as a
+        // normal 422 — Laravel's handler already does that for API routes.
+        try {
+            $lead->save();
+        } catch (ValidationException $e) {
+            throw $e;
+        } catch (\Throwable $e) {
+            Log::error('Lead stage update failed', [
+                'lead_id' => $lead->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json(['error' => 'Could not update this lead. Please try again.'], 500);
+        }
+
+        return response()->json($lead->fresh(['attribution', 'stageHistory']));
+    }
+
+    /**
+     * The consult/second-meeting/MVP/closing workflow fields — everything
+     * the Lead Details dialog can edit directly. Deliberately NOT here:
+     * `stage` (updateStage() above) and any of the auto-stamped timestamps
+     * (first_contact_at, consult_booked_at, consult_completed_at,
+     * mvp_started_at, closed_at, delivery_started_at, delivered_at, lost_at
+     * — LeadObserver owns those).
+     *
+     * Financial scope was deliberately cut back to `project_cost` alone
+     * (contract_value/recurring_mrr/payment_schedule/contract_signed_date
+     * were tried and reverted in the same session — the business wants the
+     * workflow simple for now, not full deal-financial entry). Revenue/CAC/
+     * LTV KPIs stay null until contract_value gets a real write path later.
+     *
+     * `sometimes` on every rule + Eloquent's fill() means an omitted field
+     * is left untouched, not cleared — a partial PATCH only ever changes
+     * what it actually sent.
+     */
+    public function updateWorkflow(Request $request, Lead $lead)
+    {
+        $this->assertOwnsLead($request, $lead);
+
+        $data = $request->validate([
+            'consult_scheduled_for' => ['sometimes', 'nullable', 'date'],
+            'consult_attended' => ['sometimes', 'nullable', 'boolean'],
+            'consult_outcome' => ['sometimes', 'nullable', 'string', 'in:'.implode(',', config('leads.consult_outcomes'))],
+            'needs_second_meeting' => ['sometimes', 'nullable', 'boolean'],
+            'second_meeting_scheduled_for' => ['sometimes', 'nullable', 'date'],
+            'second_meeting_outcome_good' => ['sometimes', 'nullable', 'boolean'],
+            'mvp_type' => ['sometimes', 'nullable', 'string', 'in:'.implode(',', config('leads.product_types'))],
+            'mvp_deadline' => ['sometimes', 'nullable', 'date'],
+            'mvp_cost' => ['sometimes', 'nullable', 'numeric', 'min:0'],
+            'mvp_delivered_at' => ['sometimes', 'nullable', 'date'],
+            'closing_meeting_scheduled_for' => ['sometimes', 'nullable', 'date'],
+            'closing_meeting_attended' => ['sometimes', 'nullable', 'boolean'],
+            'deposit_collected' => ['sometimes', 'nullable', 'boolean'],
+            'project_cost' => ['sometimes', 'nullable', 'numeric', 'min:0'],
+        ]);
+
+        $lead->fill($data);
+
+        try {
+            $lead->save();
+        } catch (\Throwable $e) {
+            Log::error('Lead workflow update failed', [
+                'lead_id' => $lead->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json(['error' => 'Could not update this lead. Please try again.'], 500);
+        }
+
+        return response()->json($lead->fresh(['attribution', 'stageHistory']));
+    }
+
+    /**
+     * The CRM's own "Add Client" button (Clients page, both admin and
+     * sales) — distinct from store() below, which is the public site's
+     * multi-step intake form and needs none of that funnel data. A sales
+     * user's lead is assigned to themselves right away: that's what makes
+     * this a rep's OWN client the moment they add it, no separate admin
+     * "assign this to a rep" step required. Admin-created leads are left
+     * unassigned — no "pick a rep" UI exists yet (see index()'s note on
+     * there being no list-users endpoint).
+     */
+    public function storeManual(Request $request)
+    {
+        $user = $request->user();
+
+        $data = $request->validate([
+            'full_name' => ['required', 'string', 'min:2', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255'],
+            'phone' => ['required', 'string', 'min:7'],
+            'business_type' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $lead = Lead::create([
+            'full_name' => $data['full_name'],
+            'email' => $data['email'],
+            'phone' => $data['phone'],
+            'business_type' => $data['business_type'] ?? null,
+            'status' => 'new',
+            'stage' => 'new_lead',
+            'assigned_sales_id' => $user->role === 'sales' ? $user->id : null,
+            'application_completed_at' => now(),
+        ]);
+
+        return response()->json($lead->fresh(['attribution', 'stageHistory', 'assignedSales:id,name']), 201);
+    }
+
+    /**
+     * Assign this lead to one developer — an admin-only action (Clients/
+     * Pipeline dialog). `developers` is a many-to-many on the model (a
+     * project can technically have more than one), but the UI here only
+     * ever offers picking one at a time, so `sync()` with a single id (or
+     * an empty array to unassign) is what "assign to a dev" means in
+     * practice rather than an additive attach().
+     */
+    public function assignDeveloper(Request $request, Lead $lead)
+    {
+        $data = $request->validate([
+            'developer_id' => ['nullable', 'integer', Rule::exists('users', 'id')->where('role', 'dev')],
+        ]);
+
+        $lead->developers()->sync($data['developer_id'] ? [$data['developer_id']] : []);
+
+        return response()->json($lead->fresh(['developers:id,name']));
     }
 
     public function store(Request $request)
@@ -35,17 +214,22 @@ class LeadController extends Controller
             'is_decision_maker' => ['required', 'boolean'],
 
             'business_type' => ['required', 'string', 'min:2', 'max:255'],
-            'product_type' => ['required', 'string', 'in:' . implode(',', config('leads.product_types'))],
-            'track' => ['required', 'string', 'in:low_ticket,high_ticket'],
+            'product_type' => ['required', 'string', 'in:'.implode(',', config('leads.product_types'))],
+            // Normally derived from product_type (see Lead::trackForProductType()) —
+            // nullable here so a caller can omit it; when it IS sent, that's a
+            // manual override and wins.
+            'track' => ['nullable', 'string', 'in:low_ticket,high_ticket'],
 
-            'budget_band' => ['required', 'string', 'in:' . implode(',', config('leads.budget_bands'))],
+            'budget_band' => ['required', 'string', 'in:'.implode(',', config('leads.budget_bands'))],
             'need_description' => ['required', 'string', 'min:10', 'max:2000'],
-            'desired_launch' => ['required', 'string', 'in:' . implode(',', config('leads.desired_launch_options'))],
+            'desired_launch' => ['required', 'string', 'in:'.implode(',', config('leads.desired_launch_options'))],
 
             'brief_file' => ['nullable', 'file', 'max:10240', 'mimes:pdf,doc,docx,png,jpg,jpeg'],
 
             'attribution' => ['nullable', 'string'],
         ]);
+
+        $data['track'] ??= Lead::trackForProductType($data['product_type']);
 
         $this->assertBudgetInRange($data['track'], $data['budget_band']);
 
@@ -71,6 +255,19 @@ class LeadController extends Controller
                     'desired_launch' => $data['desired_launch'],
                     'brief_file_path' => $briefPath,
                     'status' => 'new',
+                    // Set explicitly, not left to the `stage` column's DB
+                    // default: LeadObserver::saved() reads $lead->stage
+                    // right after create() to log the first stage-history
+                    // row, and an implicit DB-only default never makes it
+                    // onto the in-memory model, so that read would be null.
+                    'stage' => 'new_lead',
+                    // The multi-step intake form saves once, atomically, on
+                    // this final submit — there's no earlier "started
+                    // filling it out" event captured anywhere, so
+                    // application_started_at is deliberately left null
+                    // rather than set to the same instant (that would fake
+                    // a 100% completion rate). See the Prompt 3 report.
+                    'application_completed_at' => now(),
                 ]);
 
                 $this->createAttribution($lead, $attribution);
@@ -112,6 +309,9 @@ class LeadController extends Controller
                     'full_name' => $data['full_name'],
                     'email' => $data['email'],
                     'status' => 'gate',
+                    // Same reason as store() above — set explicitly so
+                    // LeadObserver::saved() has a real value to log.
+                    'stage' => 'new_lead',
                 ]);
 
                 $this->createAttribution($lead, $attribution);

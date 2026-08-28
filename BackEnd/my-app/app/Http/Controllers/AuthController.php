@@ -21,6 +21,13 @@ class AuthController extends Controller
             return response()->json(['error' => 'Incorrect email or password.'], 401);
         }
 
+        // Deactivated in Settings > Sales Reps — the account and its history
+        // stay intact (see the "active" migration's note), sign-in just
+        // stops working until an admin reactivates it.
+        if (! $user->active) {
+            return response()->json(['error' => 'This account has been deactivated.'], 401);
+        }
+
         $token = $user->createToken('session')->plainTextToken;
 
         return response()->json([

@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Eye, Mail, Phone, SearchX, Users } from "lucide-react";
 import { toast } from "sonner";
 import { PageShell } from "@/components/console/page-shell";
+import { AddLeadDialog } from "@/components/console/add-lead-dialog";
 import { ClientSearch } from "@/components/admin/clients/client-search";
 import { LeadDetailsDialog } from "@/components/console/lead-details-dialog";
 import { Badge } from "@/components/ui/badge";
@@ -26,9 +27,9 @@ const COLUMNS = [
   { key: "actions", label: "Actions", srOnly: true, width: "w-[3.5rem]" },
 ];
 
-// Real leads captured from the site. Not scoped to "my" leads yet — the
-// backend has no rep-assignment column — so every rep sees the same list
-// for now.
+// Real leads — the same list admin's Clients page sees (GET /api/leads is
+// unscoped here on purpose; only /rep/pipeline asks for the rep-scoped
+// variant, via the `mine` param).
 export function RepClientsView() {
   const [query, setQuery] = useState("");
   const [selectedLead, setSelectedLead] = useState(null);
@@ -67,11 +68,14 @@ export function RepClientsView() {
           {formatNumber(leads.length)} leads
         </p>
 
-        <ClientSearch
-          query={query}
-          onQueryChange={setQuery}
-          resultCount={filtered.length}
-        />
+        <div className="flex items-center gap-3">
+          <ClientSearch
+            query={query}
+            onQueryChange={setQuery}
+            resultCount={filtered.length}
+          />
+          <AddLeadDialog />
+        </div>
       </div>
 
       <Panel>

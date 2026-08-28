@@ -19,7 +19,8 @@
 export const consoleConfig = {
     features: {
         notifications: true,
-        sidebarStat: true,
+        // Disabled — mock (crm-store), not real dial data.
+        sidebarStat: false,
         mockDataChip: true,
         collapsibleSidebar: true,
     },

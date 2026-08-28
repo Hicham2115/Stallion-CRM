@@ -13,12 +13,15 @@
  */
 export const settingsConfig = {
     features: {
+        profile: true,
         createAccount: true,
-        quickAdd: true,
         repManagement: true,
-        stageEditor: true,
+        // Both disabled — the pipeline is real now (Lead::STAGES, fixed
+        // server-side), and there's real lead data to protect from an
+        // "undo everything" reset button meant for the old mock demo.
+        stageEditor: false,
         passwordTools: true,
-        resetDemoData: true,
+        resetDemoData: false,
     },
     generatedPasswordLength: 16,
     content: {
@@ -37,13 +40,6 @@ export const settingsConfig = {
         createSubmitLabel: "Create account",
         createPendingLabel: "Creating…",
         createToast: "Created an account for {name}",
-        quickAddTitle: "Quick add",
-        // The prototype left this control floating with no explanation of how it
-        // differed from the form above it. Grouped here, the difference is the
-        // whole label.
-        quickAddHint: "Add a rep for tracking only, with no sign-in.",
-        quickAddLabel: "Quick add (no login)",
-        quickAddPendingLabel: "Adding…",
         repsTitle: "Sales Reps",
         repsHint: "Edit, deactivate or remove",
         repColumn: "Rep",
