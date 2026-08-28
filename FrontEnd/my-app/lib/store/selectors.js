@@ -13,18 +13,6 @@ import { pipelineConfig, progressionStages } from "@/config/pipeline";
 import { portalConfig } from "@/config/portal";
 import { roleDefinitions } from "@/config/roles";
 /**
- * Lead counts per stage, in pipeline order.
- *
- * `conversionFromPrevious` is a FUNNEL figure, not a ratio of the two counts
- * side by side. A lead sitting in "Client" has already passed through
- * "Attended", so the number that matters at each step is how many leads ever
- * reached that stage or beyond — otherwise the funnel appears to widen partway
- * down, which is nonsense.
- */
-export function selectStageCounts(state) {
-    return stageCountsOf(state.leads, state.stageOrder);
-}
-/**
  * The same figures over an arbitrary lead set.
  *
  * Reports needs stage counts for the leads created inside a date range, not
@@ -142,10 +130,6 @@ export function selectLeaderboard(state, metric = "dials") {
     return ranked.map((rep, index) => (Object.assign(Object.assign({}, rep), { rank: index + 1, relative: top === 0 ? 0 : (rep[metric] / top) * 100 })));
 }
 // Lookups
-/** Leads in the won stage — what the Clients screen lists. */
-export function selectClients(state) {
-    return state.leads.filter((lead) => lead.stageId === pipelineConfig.wonStageId);
-}
 export function selectLeadById(state, id) {
     return state.leads.find((lead) => lead.id === id);
 }
@@ -153,47 +137,6 @@ export function selectRepById(state, id) {
     if (!id)
         return undefined;
     return state.reps.find((rep) => rep.id === id);
-}
-/** Leads in one stage, for a kanban column. */
-export function selectLeadsByStage(state, stageId) {
-    return state.leads.filter((lead) => lead.stageId === stageId);
-}
-// Date ranges
-//
-// Everything on the Reports screen derives from one of these two windows. In
-// the prototype the date range changed nothing at all — leads carried no
-// creation date, so a 7-day report and a 90-day report returned byte-identical
-// figures and the control was decoration. `Lead.createdDaysAgo` is what makes
-// it real.
-/**
- * Leads created within the last `days` days.
- *
- * `days = 0` means all time, which is how the "All time" range option is
- * expressed — a range with no lower bound rather than a special case the
- * callers have to remember to handle.
- *
- * This is the lead set every other figure on Reports is computed from.
- */
-export function selectInRange(state, days) {
-    if (days <= 0)
-        return state.leads;
-    return state.leads.filter((lead) => lead.createdDaysAgo <= days);
-}
-/**
- * Leads created in the window of equal length immediately BEFORE the current
- * one — days 30-60 for a 30-day range.
- *
- * This is the comparison behind every delta chip, and it is the entire reason a
- * report has a date range at all: "18% conversion" is a number, "18%, up 4.2
- * points on the previous 30 days" is a finding.
- *
- * Returns nothing for the all-time range, because there is no earlier period to
- * compare against — the UI drops the delta chips rather than inventing one.
- */
-export function selectInPreviousRange(state, days) {
-    if (days <= 0)
-        return [];
-    return state.leads.filter((lead) => lead.createdDaysAgo > days && lead.createdDaysAgo <= days * 2);
 }
 /**
  * Where the leads came from, biggest source first.
@@ -220,30 +163,6 @@ export function selectSourceBreakdown(leads) {
     })
         .filter((entry) => entry.count > 0)
         .sort((a, b) => b.count - a.count);
-}
-// Revenue
-/**
- * Every invoice on every client in the set, added up — paid, pending and
- * overdue alike.
- *
- * This is BILLED revenue, not collected revenue, and the two are very
- * different numbers to run a business on. The prototype printed the figure with
- * no label at all, so there was no way to tell which one it meant; the KPI card
- * now states it in the foot (`reportsConfig.kpis`), because a money figure
- * nobody can define is worse than no money figure.
- *
- * TODO(backend): if the API can distinguish collected from billed, this should
- * become two figures rather than one.
- */
-export function selectRevenueEstimate(leads) {
-    return leads.reduce((total, lead) => total + lead.invoices.reduce((sum, invoice) => sum + invoice.amount, 0), 0);
-}
-/** Outstanding balance — everything not yet paid. Used on the lead detail
- *  invoices panel, where "what do they still owe" is the actual question. */
-export function selectOutstanding(lead) {
-    return lead.invoices
-        .filter((invoice) => invoice.status !== "paid")
-        .reduce((sum, invoice) => sum + invoice.amount, 0);
 }
 /**
  * Reps ranked by dials, carrying their conversion efficiency alongside.
@@ -463,46 +382,7 @@ export function selectRepKpis(state, repId) {
 export function messagesForViewer(messages, viewerName) {
     return messages.map((message) => (Object.assign(Object.assign({}, message), { fromMe: message.authorName === viewerName })));
 }
-/**
- * Every project the dev team can work on: the paying clients.
- *
- * A lead that has not converted has no delivery to do, which is why this is
- * `selectClients()` and not `state.leads`. A developer looking at a list that
- * included prospects would be looking at work that does not exist.
- */
-export function selectProjects(state, today) {
-    return selectClients(state).map((lead) => ({
-        lead,
-        progress: selectProjectProgress(lead),
-        previewCount: lead.previews.length,
-        live: Boolean(lead.liveUrl),
-        overdue: countOverdue(lead, today),
-    }));
-}
-/**
- * How many unfinished steps are past their target date.
- *
- * `today` IS A REQUIRED-ISH ARGUMENT ON PURPOSE. Reading the clock inside a
- * selector would make this function return different answers on the server and
- * on the client for any project due today, which React reports as a hydration
- * mismatch — intermittent, environment-dependent, and miserable to chase. See
- * the date note at the top of lib/types.ts.
- *
- * So the caller passes a date it obtained AFTER hydration (in an effect), and
- * omitting it yields 0 — the honest answer for a render that cannot know what
- * day it is. The projects grid renders without overdue markers for one frame
- * and then with them, which is correct: "nothing is late" is a safer thing to
- * show for 16ms than a number that might be wrong.
- */
-export function countOverdue(lead, today) {
-    if (!today)
-        return 0;
-    const cutoff = today.toISOString().slice(0, 10);
-    return lead.milestones.filter((milestone) => milestone.status !== "done" &&
-        milestone.targetDate !== null &&
-        milestone.targetDate < cutoff).length;
-}
-/** Is this one step late? Same clock caveat as `countOverdue`. */
+/** Is this one step late? Same clock caveat noted on the date-range selectors above. */
 export function isStepOverdue(milestone, today) {
     if (!today || !milestone.targetDate || milestone.status === "done") {
         return false;

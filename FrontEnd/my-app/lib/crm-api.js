@@ -58,74 +58,6 @@ function localId(prefix) {
         : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
     return `${prefix}-${unique}`;
 }
-/**
- * Create a client. Used by the "Add client" dialog.
- *
- * Never throw for an expected failure (duplicate email, invalid phone) —
- * return `{ ok: false, message, field }` so the dialog can point at the offending
- * input. Reserve throwing for genuine outages.
- */
-export async function createClient(input) {
-    if (!CRM_BACKEND_CONNECTED) {
-        await delay(320);
-        const lead = {
-            id: localId("lead"),
-            name: input.name,
-            company: input.company,
-            phone: input.phone,
-            email: input.email,
-            source: input.source ?? "",
-            // A record created from the Clients screen — or from the dev workspace —
-            // is a paying client by definition. That is what both screens list.
-            stageId: pipelineConfig.wonStageId,
-            assignedRepId: input.assignedRepId ?? null,
-            daysInStage: 0,
-            // Created just now, so it falls inside every Reports date range.
-            createdDaysAgo: 0,
-            notes: input.note
-                ? [
-                    {
-                        id: localId("note"),
-                        body: input.note,
-                        authorName: input.authorName ?? "",
-                        daysAgo: 0,
-                    },
-                ]
-                : [],
-            activity: [{ id: localId("act"), label: "Lead created", daysAgo: 0 }],
-            milestones: [],
-            files: [],
-            invoices: [],
-            // Client-visible fields, all deliberately empty. A client added from the
-            // Clients screen has no project plan, no preview and nothing live yet,
-            // and the portal has a designed empty state for each — inventing a
-            // placeholder preview link here would put a dead link in front of the
-            // client on day one.
-            projectSummary: input.projectSummary?.trim() ?? "",
-            previews: [],
-            liveUrl: null,
-            updates: [],
-        };
-        return { ok: true, data: lead };
-    }
-    // TODO(backend): replace with the real call, e.g.
-    //
-    //   const response = await fetch("/api/clients", {
-    //     method: "POST",
-    //     headers: { "Content-Type": "application/json" },
-    //     body: JSON.stringify(input),
-    //   });
-    //
-    //   if (response.status === 409) {
-    //     return { ok: false, message: "A client with that email already exists.",
-    //              field: "email" };
-    //   }
-    //   if (!response.ok) {
-    //     return { ok: false, message: "We could not reach the server." };
-    //   }
-    //   return { ok: true, data: (await response.json()) as Lead };
-    return notImplemented("createClient");
-}
 /** Delete a lead. Resolves with the id so the store knows what to drop. */
 export async function deleteLead(id) {
     if (!CRM_BACKEND_CONNECTED) {
@@ -240,60 +172,6 @@ export async function logCall(leadId) {
     // TODO(backend): POST /api/leads/{leadId}/calls — return the created
     // activity record, including the server-generated id and timestamp.
     return notImplemented("logCall");
-}
-/** Create a rep. `password` omitted = the "Quick Add (no login)" path. */
-export async function createRep(input) {
-    if (!CRM_BACKEND_CONNECTED) {
-        await delay(360);
-        return {
-            ok: true,
-            data: {
-                id: localId("rep"),
-                name: input.name,
-                email: input.email,
-                role: "Sales Rep",
-                // A brand new rep has done nothing yet, and every counter says so.
-                // `dialsToday` is not optional on purpose: a missing figure would
-                // render as "NaN" on the one card the rep is measured by.
-                dials: 0,
-                dialsToday: 0,
-                appointments: 0,
-                conversions: 0,
-                active: true,
-            },
-        };
-    }
-    // TODO(backend): POST /api/reps
-    //   Return 409 with field: "email" for a duplicate address.
-    return notImplemented("createRep");
-}
-export async function updateRep(rep) {
-    if (!CRM_BACKEND_CONNECTED) {
-        await delay(220);
-        return { ok: true, data: rep };
-    }
-    // TODO(backend): PATCH /api/reps/{id}
-    return notImplemented("updateRep");
-}
-/** Deactivate or reactivate a rep. Deactivated reps keep their history but
- *  drop out of assignment menus and the leaderboard. */
-export async function setRepActive(rep, active) {
-    if (!CRM_BACKEND_CONNECTED) {
-        await delay(200);
-        return { ok: true, data: Object.assign(Object.assign({}, rep), { active }) };
-    }
-    // TODO(backend): PATCH /api/reps/{id} { active }
-    return notImplemented("setRepActive");
-}
-/** Permanently delete a rep. */
-export async function deleteRep(id) {
-    if (!CRM_BACKEND_CONNECTED) {
-        await delay(220);
-        return { ok: true, data: id };
-    }
-    // TODO(backend): DELETE /api/reps/{id}
-    //   Decide what happens to leads assigned to them — reassign or orphan.
-    return notImplemented("deleteRep");
 }
 // PIPELINE STAGES
 /** Rename a stage. The id must not change — leads reference it. */

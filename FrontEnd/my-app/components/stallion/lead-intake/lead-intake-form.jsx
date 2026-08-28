@@ -106,7 +106,6 @@ export function LeadIntakeForm({ onSubmitted }) {
       const payload = { ...value, attribution };
       const parsed = leadSchema.safeParse(payload);
       if (!parsed.success) return;
-      console.log("Submitting lead:", parsed.data, briefFile);
 
       await submitLead.mutateAsync(
         { values: parsed.data, briefFile },
