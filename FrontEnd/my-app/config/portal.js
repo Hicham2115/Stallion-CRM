@@ -53,9 +53,7 @@ export const portalConfig = {
         projectLinks: true,
         previewGallery: true,
         milestones: true,
-        contact: true,
         stepTargetDates: true,
-        contactActions: true,
     },
     routes: {
         home: "/portal",
@@ -63,12 +61,6 @@ export const portalConfig = {
     },
     demo: {
         leadId: "lead-1",
-    },
-    // TODO(backend): replace with the agency's real numbers before this ships to
-    // a client. These are placeholders in the right format, not working lines.
-    contact: {
-        phone: "+212522000000",
-        whatsapp: "212600000000",
     },
     content: {
         header: {
@@ -115,17 +107,6 @@ export const portalConfig = {
             expectedBy: "Expected by {date}",
             emptyTitle: "No stages yet",
             emptyDescription: "Your project plan appears here once we have agreed the scope.",
-        },
-        contact: {
-            title: "Your Stallion contact",
-            hint: "One person, not a queue",
-            roleLabel: "Looking after your project",
-            emailAction: "Email",
-            callAction: "Call",
-            whatsappAction: "WhatsApp",
-            emailSubject: "Question about {project}",
-            unassignedTitle: "Contact coming soon",
-            unassignedDescription: "We are assigning someone to look after your project. Until then, reply to your last email from us.",
         },
         developer: {
             title: "Your developer",

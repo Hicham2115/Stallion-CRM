@@ -6,9 +6,7 @@ import { portalConfig } from "@/config/portal";
 const { content } = portalConfig;
 
 // The developer actually assigned to this project (Lead::developers, via
-// PortalController) — separate from ContactCard's account/billing contact,
-// since "who's building this" and "who do I email about my invoice" are
-// two different people. Only rendered for a real (Sanctum) client session —
+// PortalController). Only rendered for a real (Sanctum) client session —
 // see usePortalLead().
 export function DeveloperCard({ developer }) {
   return (
