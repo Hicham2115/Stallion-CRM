@@ -19,8 +19,8 @@ import { isStepOverdue } from "@/lib/store/selectors";
 import { cn } from "@/lib/utils";
 const { content, features } = devConfig;
 const copy = content.steps;
-// The client-facing "In progress" state is derived (not stored) by
-// normalizeMilestones() in lib/crm-api.ts — the first unticked step becomes
+// The client-facing "In progress" state is derived (not stored) server-side
+// by ProjectController::normalizeStatuses — the first unticked step becomes
 // the one in progress, so a developer only ever toggles done/not-done here.
 // Drag reordering uses @dnd-kit (not native HTML5 drag) for touch + keyboard
 // support, matching the pipeline board.

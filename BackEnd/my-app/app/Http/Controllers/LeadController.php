@@ -357,7 +357,9 @@ class LeadController extends Controller
             User::where('role', 'admin')->get()->each->notify(new CrmNotification(
                 'New lead',
                 "{$lead->full_name} just submitted an application.",
-                "/admin/clients/{$lead->id}",
+                // Not /admin/clients/{id} — there's no per-lead route; the
+                // Clients list opens a lead's real details in a dialog.
+                '/admin/clients',
             ));
         } catch (\Throwable $e) {
             Log::error('New lead notification failed', ['lead_id' => $lead->id, 'error' => $e->getMessage()]);

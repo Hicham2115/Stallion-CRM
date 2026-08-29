@@ -66,6 +66,7 @@ Route::get('/portal/lead', [PortalController::class, 'show'])->middleware(['auth
 // Same role gate as /leads — see AnalyticsController's report note on
 // whether `economics` (revenue/CAC/LTV) should be admin-only.
 Route::get('/analytics/kpis', [AnalyticsController::class, 'kpis'])->middleware(['auth:sanctum', 'role:admin,sales']);
+Route::get('/analytics/leaderboard', [AnalyticsController::class, 'leaderboard'])->middleware(['auth:sanctum', 'role:admin,sales']);
 
 // Settings > Sales Reps — real accounts, admin-only (see UserController).
 Route::get('/users', [UserController::class, 'index'])->middleware(['auth:sanctum', 'role:admin']);

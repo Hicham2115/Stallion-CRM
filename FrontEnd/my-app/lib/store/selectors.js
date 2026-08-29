@@ -111,32 +111,9 @@ export function kpisOf(leads, reps, stageOrder) {
         avgDialsPerRep: activeReps.length === 0 ? 0 : Math.round(totalDials / activeReps.length),
     };
 }
-/**
- * Reps ranked by a metric, highest first.
- *
- * The design shows the reps in the order they were created, which is not a
- * leaderboard — the top performer was fourth from the top. Sorting is the
- * whole point of the panel.
- *
- * Ties keep their input order (Array.prototype.sort is stable), so equal reps
- * do not shuffle between renders.
- */
-export function selectLeaderboard(state, metric = "dials") {
-    const ranked = state.reps
-        .filter((rep) => rep.active)
-        .slice()
-        .sort((a, b) => b[metric] - a[metric]);
-    const top = ranked[0]?.[metric] ?? 0;
-    return ranked.map((rep, index) => (Object.assign(Object.assign({}, rep), { rank: index + 1, relative: top === 0 ? 0 : (rep[metric] / top) * 100 })));
-}
 // Lookups
 export function selectLeadById(state, id) {
     return state.leads.find((lead) => lead.id === id);
-}
-export function selectRepById(state, id) {
-    if (!id)
-        return undefined;
-    return state.reps.find((rep) => rep.id === id);
 }
 /**
  * Where the leads came from, biggest source first.

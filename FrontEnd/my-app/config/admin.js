@@ -18,7 +18,6 @@ export const adminConfig = {
     routes: {
         home: "/admin",
         clients: "/admin/clients",
-        client: (leadId) => `/admin/clients/${leadId}`,
         pipeline: "/admin/pipeline",
         chat: "/admin/chat",
         reports: "/admin/reports",

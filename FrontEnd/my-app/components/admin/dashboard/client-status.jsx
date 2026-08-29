@@ -4,7 +4,6 @@ import { Panel, PanelBody, PanelHeader } from "@/components/deck/panel";
 import { StatusDot } from "@/components/deck/status-dot";
 import { adminConfig } from "@/config/admin";
 import { LIVE_STAGES, liveStageColor, liveStageCountsOf } from "@/config/pipeline-live";
-import { formatPercent } from "@/lib/format";
 import { api } from "@/lib/axios";
 const { content } = adminConfig.dashboard;
 // Real data — GET /api/leads, counted across the real 10-stage pipeline

@@ -16,7 +16,6 @@ var __rest =
       }
     return t;
   };
-import * as React from "react";
 import { cn } from "@/lib/utils";
 function Table(_a) {
   var { className } = _a,

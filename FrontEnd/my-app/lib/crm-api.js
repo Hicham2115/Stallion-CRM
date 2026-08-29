@@ -210,47 +210,25 @@ export async function reorderStages(orderedIds) {
    The role that may call these is `dev` (and `admin`). See the field-ownership
    table in config/roles.ts. */
 /**
- * Put the three-state milestone list back into a coherent shape.
- *
- * ──────────────────────────────────────────────────────────────────────────
- * THE ONE RULE, AND WHY IT IS A RULE AND NOT A FIELD
+ * THE ONE RULE FOR MILESTONE STATUS
  * ──────────────────────────────────────────────────────────────────────────
  * A developer sees a CHECKBOX per step: done, or not done. A client sees THREE
  * states: Complete, In progress, Not started. Rather than ask the developer to
  * maintain the middle one by hand — which is the version that goes stale in a
  * week, leaving a client reading "We're working on Design" a month after
- * Design shipped — it is DERIVED here after every edit:
+ * Design shipped — it is DERIVED after every edit:
  *
  *     the first step that is not done  ->  in_progress
  *     everything after it              ->  pending
  *     everything explicitly ticked     ->  done
  *
- * Call it after ANY change to the array: toggle, add, remove, reorder. It is
- * the only thing in the codebase that should ever write `status`.
- *
- * Consequences worth knowing:
- *   - ticking step 3 while step 2 is open leaves step 2 as the in-progress
- *     one, which is correct: that IS the work still outstanding
- *   - with every step done there is no in_progress, which is what
- *     `selectProjectProgress().launched` reads to say "your project is live"
- *   - reordering can move which step is in progress, and that is the point
- *
- * TODO(backend): reproduce this server-side. If the API lets a client of the
- * API set `status` directly, the two definitions drift and the portal starts
- * contradicting the workspace.
+ * Reproduced server-side now — see ProjectController::normalizeStatuses in
+ * the Laravel backend, the only place that should ever write `status`. This
+ * file used to derive it client-side (normalizeMilestones()); that's gone
+ * now that the backend does it, but the rule is unchanged and still the
+ * reason `updateMilestone` below only ever sends done/pending, never
+ * in_progress.
  */
-export function normalizeMilestones(milestones) {
-    let foundOpen = false;
-    return milestones.map((milestone) => {
-        if (milestone.status === "done")
-            return milestone;
-        if (!foundOpen) {
-            foundOpen = true;
-            return Object.assign(Object.assign({}, milestone), { status: "in_progress" });
-        }
-        return Object.assign(Object.assign({}, milestone), { status: "pending" });
-    });
-}
 /** Apply a delivery change to a lead and hand the whole record back. */
 function applyToLead(lead, changes) {
     return Object.assign(Object.assign({}, lead), changes);

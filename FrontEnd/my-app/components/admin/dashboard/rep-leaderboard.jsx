@@ -1,22 +1,35 @@
 "use client";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { ArrowDown, Users } from "lucide-react";
 import { EmptyState } from "@/components/deck/empty-state";
 import { InitialsAvatar } from "@/components/deck/initials-avatar";
 import { Panel, PanelBody, PanelHeader } from "@/components/deck/panel";
 import { adminConfig } from "@/config/admin";
+import { api } from "@/lib/axios";
 import { formatNumber, template } from "@/lib/format";
-import { useCrm } from "@/lib/store/crm-store";
-import { selectLeaderboard } from "@/lib/store/selectors";
 import { cn } from "@/lib/utils";
 const { content, leaderboardColumns, leaderboardLimit } = adminConfig.dashboard;
+/** Sort by the active metric and derive rank + the recessive bar's width
+ *  relative to the top rep — same rule the old mock selector used. */
+function rankBy(reps, metric) {
+    const ranked = [...reps].sort((a, b) => b[metric] - a[metric]);
+    const top = ranked[0]?.[metric] ?? 0;
+    return ranked.map((rep, index) => (Object.assign(Object.assign({}, rep), { rank: index + 1, relative: top === 0 ? 0 : (rep[metric] / top) * 100 })));
+}
 // Ranked by the active metric, sort default rather than creation order. A
 // recessive bar sits behind the active metric's figure (not beside it, to
 // save horizontal space on a laptop) so relative performance is legible.
+// Real data — GET /api/analytics/leaderboard (lifetime dials/appointments/
+// conversions per active sales rep); ranking stays client-side since it's
+// just a sort over whichever column is selected.
 export function RepLeaderboard() {
-    const { state } = useCrm();
     const [metric, setMetric] = useState("dials");
-    const rows = selectLeaderboard(state, metric);
+    const { data: reps = [] } = useQuery({
+        queryKey: ["leaderboard"],
+        queryFn: async () => (await api.get("/api/analytics/leaderboard")).data,
+    });
+    const rows = useMemo(() => rankBy(reps, metric), [reps, metric]);
     // Looked up once so the hint and screen-reader caption can't drift apart.
     const metricLabel = leaderboardColumns.find((column) => column.key === metric)?.label ?? metric;
     const visible = leaderboardLimit > 0 ? rows.slice(0, leaderboardLimit) : rows;

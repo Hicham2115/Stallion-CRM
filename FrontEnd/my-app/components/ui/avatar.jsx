@@ -10,7 +10,6 @@ var __rest = (this && this.__rest) || function (s, e) {
         }
     return t;
 };
-import * as React from "react";
 import { Avatar as AvatarPrimitive } from "@base-ui/react/avatar";
 import { cn } from "@/lib/utils";
 function Avatar(_a) {

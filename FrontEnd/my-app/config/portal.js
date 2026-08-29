@@ -69,10 +69,15 @@ export const portalConfig = {
             progressLabel: "Overall progress",
             progressAccessibleLabel: "Overall project progress",
             progressDetail: "{done} of {total} stages complete",
+            // The status pill next to the title — see stateOf() in
+            // project-header.jsx. "In progress" comes from milestones.status
+            // below; "Live" from links.liveBadge.
+            startingLabel: "Getting started",
         },
         links: {
             title: "Your links",
             hint: "Preview",
+            liveBadge: "Live",
             previewBadge: "Work in progress",
             previewTitle: "Preview your project",
             previewBody: "A private link to what we are building. It changes as we work, so expect things to move around.",
@@ -123,7 +128,5 @@ export const portalConfig = {
         missingTitle: "We cannot find your project",
         missingDescription: "The link may be out of date. Sign in again, or contact us and we will sort it out.",
         missingAction: "Back to sign in",
-        noProjectTitle: "Your project has not started yet",
-        noProjectDescription: "As soon as we kick off, your stages and previews appear here.",
     },
 };
