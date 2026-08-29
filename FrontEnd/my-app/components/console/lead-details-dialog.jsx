@@ -201,6 +201,8 @@ function LeadDetailsContent({ lead }) {
   const queryClient = useQueryClient();
 
   const [form, setForm] = useState(() => emptyWorkflowState(lead));
+  const [portalEmail, setPortalEmail] = useState("");
+  const [portalPassword, setPortalPassword] = useState("");
 
   // Developer assignment — admin-only. Picking one only updates local form
   // state (so the Select reflects the pick immediately); it's sent to the
@@ -221,6 +223,26 @@ function LeadDetailsContent({ lead }) {
     mutationFn: async (values) =>
       (await api.patch(`/api/leads/${lead.id}`, values)).data,
   });
+
+  // Turns on /portal for this lead's client — admin-only, separate from the
+  // rest of the form (it isn't a lead field, it creates a User). See
+  // LeadController::createPortalAccount.
+  const createPortalAccount = useMutation({
+    mutationFn: async (values) =>
+      (await api.post(`/api/leads/${lead.id}/portal-account`, values)).data,
+  });
+
+  async function handleCreatePortalAccount() {
+    try {
+      await createPortalAccount.mutateAsync({ email: portalEmail.trim(), password: portalPassword });
+      toast.success("Portal login created");
+      setPortalEmail("");
+      setPortalPassword("");
+      queryClient.invalidateQueries({ queryKey: ["leads"] });
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+    }
+  }
 
   const saving = save.isPending || assignDeveloper.isPending;
 
@@ -680,6 +702,50 @@ function LeadDetailsContent({ lead }) {
                     </SelectContent>
                   </Select>
                 </EditRow>
+              </Section>
+            )}
+
+            {isAdmin && (
+              <Section title="Client portal access">
+                <p className="mb-3 text-[0.8125rem] text-ink-muted">
+                  {lead.clientUser?.email ? (
+                    <>
+                      Signed in as <span className="text-ink">{lead.clientUser.email}</span>. Creating a new login
+                      below replaces it.
+                    </>
+                  ) : (
+                    "No portal login yet — the client can't see this project on /portal."
+                  )}
+                </p>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                  <EditRow label="Email">
+                    <input
+                      type="email"
+                      value={portalEmail}
+                      onChange={(e) => setPortalEmail(e.target.value)}
+                      className={cn(fieldBase, "h-10 px-3 text-[0.8125rem]")}
+                    />
+                  </EditRow>
+                  <EditRow label="Password">
+                    <input
+                      type="text"
+                      value={portalPassword}
+                      onChange={(e) => setPortalPassword(e.target.value)}
+                      placeholder="Min. 8 characters"
+                      className={cn(fieldBase, "h-10 px-3 text-[0.8125rem]")}
+                    />
+                  </EditRow>
+                  <div className="flex items-end">
+                    <Button
+                      type="button"
+                      onClick={handleCreatePortalAccount}
+                      disabled={createPortalAccount.isPending || !portalEmail.trim() || portalPassword.length < 8}
+                      className="h-10 w-full font-semibold"
+                    >
+                      {createPortalAccount.isPending ? "Creating…" : "Create login"}
+                    </Button>
+                  </div>
+                </div>
               </Section>
             )}
 

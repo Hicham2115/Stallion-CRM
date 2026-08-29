@@ -3,16 +3,17 @@ import { useState } from "react";
 import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors, } from "@dnd-kit/core";
 import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy, } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { CalendarDays, Check, GripVertical, ListChecks, X } from "lucide-react";
+import { Check, GripVertical, ListChecks, X } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/deck/confirm-dialog";
+import { DateInput } from "@/components/deck/date-input";
 import { EmptyState } from "@/components/deck/empty-state";
 import { fieldBase } from "@/components/deck/field";
 import { Panel, PanelBody, PanelHeader } from "@/components/deck/panel";
 import { useToday } from "@/components/dev/use-today";
 import { Button } from "@/components/ui/button";
 import { devConfig } from "@/config/dev";
-import { formatShortDate, template } from "@/lib/format";
+import { template } from "@/lib/format";
 import { useCrm } from "@/lib/store/crm-store";
 import { isStepOverdue } from "@/lib/store/selectors";
 import { cn } from "@/lib/utils";
@@ -190,28 +191,18 @@ function StepRow({ step, overdue, onToggle, onRename, onDate, onRemove, }) {
       </button>
     </li>);
 }
-// A target date, shown as a chip until clicked. Uses a native
-// <input type="date"> rather than the shipped Calendar component — it gets
-// locale ordering, mobile pickers, and dark styling (color-scheme: dark on
-// :root) for free. Stays collapsed until used since most steps never get one.
+// A target date — the console's branded DateInput (Popover + shadcn
+// Calendar) instead of the native <input type="date">, matching the picker
+// used for dates elsewhere (see Lead Details' consult/MVP/closing dates).
 function StepDate({ step, overdue, onChange, }) {
-    const [open, setOpen] = useState(false);
-    if (open || !step.targetDate) {
-        return (<span className="flex shrink-0 items-center gap-1">
-        <input type="date" autoFocus={open} value={step.targetDate ?? ""} onChange={(event) => onChange(event.target.value || null)} onBlur={() => setOpen(false)} aria-label={`${copy.targetLabel} — ${step.label}`} className={cn(fieldBase, "h-8 w-[9.5rem] px-2.5 text-[0.8125rem]", !step.targetDate && "text-ink-muted")}/>
-      </span>);
-    }
-    return (<span className="flex shrink-0 items-center gap-1">
-      <button type="button" onClick={() => setOpen(true)} aria-label={`${copy.targetLabel} — ${step.label}`} className={cn("inline-flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[0.8125rem] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60", overdue
-            ? "border-status-critical/30 bg-status-critical/10 text-status-critical"
-            : "border-hairline bg-white/[0.03] text-ink-soft hover:border-hairline-strong hover:bg-white/[0.06]")}>
-        <CalendarDays aria-hidden className="size-3.5 shrink-0"/>
-        <span className="deck-nums">{formatShortDate(step.targetDate)}</span>
+    return (<span className="flex w-42 shrink-0 items-center gap-1">
+      <span className="min-w-0 flex-1">
+        <DateInput value={step.targetDate ?? ""} onChange={(event) => onChange(event.target.value || null)} placeholder={copy.targetLabel} ariaLabel={`${copy.targetLabel} — ${step.label}`} className={cn("h-8 px-2.5 text-[0.8125rem]", overdue && "border-status-critical/30 bg-status-critical/10 text-status-critical")}/>
         {overdue && <span className="sr-only">{copy.overdueLabel}</span>}
-      </button>
+      </span>
 
-      <button type="button" onClick={() => onChange(null)} aria-label={`${copy.targetClear} — ${step.label}`} className="grid size-7 shrink-0 place-items-center rounded-lg text-ink-faint transition-colors hover:bg-white/[0.05] hover:text-ink-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60">
+      {step.targetDate && (<button type="button" onClick={() => onChange(null)} aria-label={`${copy.targetClear} — ${step.label}`} className="grid size-7 shrink-0 place-items-center rounded-lg text-ink-faint transition-colors hover:bg-white/[0.05] hover:text-ink-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60">
         <X aria-hidden className="size-3.5"/>
-      </button>
+      </button>)}
     </span>);
 }

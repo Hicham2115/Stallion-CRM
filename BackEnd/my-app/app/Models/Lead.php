@@ -26,6 +26,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
     'need_description',
     'desired_launch',
     'brief_file_path',
+    'live_url',
     'status',
     'stage',
     'lost_reason',
@@ -201,6 +202,26 @@ class Lead extends Model
     public function developers(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'lead_developer');
+    }
+
+    /** The real (role=client) account that can sign in and see this lead on
+     *  /portal — see LeadController::createPortalAccount. */
+    public function clientUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'client_user_id');
+    }
+
+    /** The dev workspace's "Project Steps" — see LeadMilestone. */
+    public function milestones(): HasMany
+    {
+        return $this->hasMany(LeadMilestone::class)->orderBy('position');
+    }
+
+    /** Screenshots/links shared with the client — newest first, matching
+     *  the portal's "freshest link wins" read order. */
+    public function previews(): HasMany
+    {
+        return $this->hasMany(LeadPreview::class)->latest();
     }
 
     /**

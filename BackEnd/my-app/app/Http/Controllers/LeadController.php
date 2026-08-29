@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Lead;
 use App\Models\LeadAttribution;
 use App\Models\LeadSegmentation;
+use App\Models\User;
+use App\Notifications\CrmNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -34,7 +36,7 @@ class LeadController extends Controller
         // already has from this list — see LeadStageHistory. assignedSales
         // (name only) is here for the Reports CSV export's "Assigned rep"
         // column — no separate "list users" endpoint exists yet.
-        $leads = Lead::with(['attribution', 'stageHistory', 'assignedSales:id,name', 'developers:id,name'])
+        $leads = Lead::with(['attribution', 'stageHistory', 'assignedSales:id,name', 'developers:id,name', 'clientUser:id,email'])
             ->when($mine && $user->role === 'sales', fn ($q) => $q->where('assigned_sales_id', $user->id))
             ->when($user->role === 'dev', fn ($q) => $q->whereHas('developers', fn ($dq) => $dq->where('users.id', $user->id)))
             ->orderByDesc('created_at')
@@ -54,6 +56,53 @@ class LeadController extends Controller
         if ($user->role === 'sales' && $lead->assigned_sales_id !== $user->id) {
             abort(403, 'This lead is not assigned to you.');
         }
+    }
+
+    /**
+     * One lead, for a dev opening their project page directly (not from
+     * the already-fetched list) — same scoping as index(): a dev only
+     * reaches a lead they're actually assigned to.
+     */
+    public function show(Request $request, Lead $lead)
+    {
+        $this->assertOwnsLead($request, $lead);
+
+        $user = $request->user();
+        if ($user->role === 'dev' && ! $lead->developers()->where('users.id', $user->id)->exists()) {
+            abort(403, 'You are not assigned to this project.');
+        }
+
+        return response()->json($lead->fresh([
+            'attribution', 'stageHistory', 'assignedSales:id,name', 'developers:id,name', 'clientUser:id,email', 'milestones', 'previews',
+        ]));
+    }
+
+    /**
+     * Create the client's own sign-in for this lead and link it — what
+     * turns on /portal for them. Admin-only. The lead may already have a
+     * linked account; this always creates a NEW one and overwrites the
+     * link, since there's no "edit" UI for it yet and re-running this is
+     * how an admin would reset a client's forgotten credentials today.
+     */
+    public function createPortalAccount(Request $request, Lead $lead)
+    {
+        $data = $request->validate([
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
+            'password' => ['required', 'string', 'min:8'],
+        ]);
+
+        $user = User::create([
+            'name' => $lead->full_name,
+            'email' => $data['email'],
+            'password' => $data['password'],
+            'role' => 'client',
+            'active' => true,
+        ]);
+
+        $lead->client_user_id = $user->id;
+        $lead->save();
+
+        return response()->json($user->only(['id', 'name', 'email', 'role']), 201);
     }
 
     /**
@@ -202,6 +251,14 @@ class LeadController extends Controller
 
         $lead->developers()->sync($data['developer_id'] ? [$data['developer_id']] : []);
 
+        if ($data['developer_id']) {
+            User::find($data['developer_id'])?->notify(new CrmNotification(
+                'New project assigned',
+                "You've been assigned to {$lead->full_name}'s project.",
+                "/dev/{$lead->id}",
+            ));
+        }
+
         return response()->json($lead->fresh(['developers:id,name']));
     }
 
@@ -292,6 +349,18 @@ class LeadController extends Controller
             Log::error('Lead creation failed', ['error' => $e->getMessage()]);
 
             return response()->json(['error' => 'Could not save this lead. Please try again.'], 500);
+        }
+
+        // Best-effort — a notification failure shouldn't turn a saved lead
+        // into a 500 for the person who just submitted it.
+        try {
+            User::where('role', 'admin')->get()->each->notify(new CrmNotification(
+                'New lead',
+                "{$lead->full_name} just submitted an application.",
+                "/admin/clients/{$lead->id}",
+            ));
+        } catch (\Throwable $e) {
+            Log::error('New lead notification failed', ['lead_id' => $lead->id, 'error' => $e->getMessage()]);
         }
 
         return response()->json(['id' => $lead->id, 'status' => $lead->status], 201);

@@ -14,7 +14,7 @@
  *    - Change where a role lands ...... roleHome
  * ============================================================================
  */
-import { Bell, ChartColumn, CodeXml, Columns3, Eye, FolderOpen, LayoutDashboard, PanelsTopLeft, Receipt, Settings, Users, } from "lucide-react";
+import { Bell, ChartColumn, CodeXml, Columns3, Eye, LayoutDashboard, PanelsTopLeft, Settings, Users, } from "lucide-react";
 import { adminConfig } from "@/config/admin";
 import { devConfig } from "@/config/dev";
 import { loginConfig } from "@/config/login";
@@ -162,22 +162,6 @@ export const navigation = {
                     roles: ["client"],
                     title: "Previews",
                     subtitle: "Everything we have shared with you so far.",
-                },
-                {
-                    label: "Files",
-                    href: portalConfig.routes.files,
-                    icon: FolderOpen,
-                    roles: ["client"],
-                    title: "Your files",
-                    subtitle: "Briefs, contracts and finished work.",
-                },
-                {
-                    label: "Invoices",
-                    href: portalConfig.routes.billing,
-                    icon: Receipt,
-                    roles: ["client"],
-                    title: "Invoices",
-                    subtitle: "What you have been billed, and what is outstanding.",
                 },
                 /* ------------------------------------------------------------------
                    THE DEV WORKSPACE

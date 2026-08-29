@@ -4,7 +4,10 @@ use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DialLogController;
 use App\Http\Controllers\LeadController;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\PortalController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\UserController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -21,12 +24,18 @@ Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanc
 Route::patch('/profile', [ProfileController::class, 'update'])->middleware('auth:sanctum');
 Route::patch('/profile/password', [ProfileController::class, 'updatePassword'])->middleware('auth:sanctum');
 
+// Topbar bell — a signed-in user's own database notifications.
+Route::get('/notifications', [NotificationController::class, 'index'])->middleware('auth:sanctum');
+Route::patch('/notifications/read-all', [NotificationController::class, 'markAllRead'])->middleware('auth:sanctum');
+Route::patch('/notifications/{notification}/read', [NotificationController::class, 'markRead'])->middleware('auth:sanctum');
+
 // Rep Dashboard "My Dials Today" — self-service, sales-role only (see
 // DialLogController).
 Route::get('/dials/today', [DialLogController::class, 'today'])->middleware(['auth:sanctum', 'role:sales']);
 Route::patch('/dials/today', [DialLogController::class, 'updateToday'])->middleware(['auth:sanctum', 'role:sales']);
 
 Route::get('/leads', [LeadController::class, 'index'])->middleware(['auth:sanctum', 'role:admin,sales,dev']);
+Route::get('/leads/{lead}', [LeadController::class, 'show'])->middleware(['auth:sanctum', 'role:admin,sales,dev']);
 Route::patch('/leads/{lead}/stage', [LeadController::class, 'updateStage'])->middleware(['auth:sanctum', 'role:admin,sales']);
 // Prompt 4: same gate as everything else on this resource — no separate
 // dev permission tier exists to reuse for the MVP fields specifically. See
@@ -37,6 +46,22 @@ Route::post('/leads', [LeadController::class, 'store'])->middleware('throttle:10
 Route::post('/leads/manual', [LeadController::class, 'storeManual'])->middleware(['auth:sanctum', 'role:admin,sales']);
 Route::patch('/leads/{lead}/developer', [LeadController::class, 'assignDeveloper'])->middleware(['auth:sanctum', 'role:admin']);
 Route::post('/leads/gate', [LeadController::class, 'storeGate'])->middleware('throttle:10,1');
+
+// Dev workspace — real "Project Steps", previews and the public live URL
+// (see ProjectController). Admin can also edit; a dev only their own.
+Route::post('/leads/{lead}/milestones', [ProjectController::class, 'storeMilestone'])->middleware(['auth:sanctum', 'role:admin,dev']);
+Route::patch('/leads/{lead}/milestones/reorder', [ProjectController::class, 'reorderMilestones'])->middleware(['auth:sanctum', 'role:admin,dev']);
+Route::patch('/leads/{lead}/milestones/{milestone}', [ProjectController::class, 'updateMilestone'])->middleware(['auth:sanctum', 'role:admin,dev']);
+Route::delete('/leads/{lead}/milestones/{milestone}', [ProjectController::class, 'destroyMilestone'])->middleware(['auth:sanctum', 'role:admin,dev']);
+Route::post('/leads/{lead}/previews', [ProjectController::class, 'storePreview'])->middleware(['auth:sanctum', 'role:admin,dev']);
+Route::delete('/leads/{lead}/previews/{preview}', [ProjectController::class, 'destroyPreview'])->middleware(['auth:sanctum', 'role:admin,dev']);
+Route::patch('/leads/{lead}/live-url', [ProjectController::class, 'updateLiveUrl'])->middleware(['auth:sanctum', 'role:admin,dev']);
+
+// Admin — create/reset the client's own sign-in for a lead's portal.
+Route::post('/leads/{lead}/portal-account', [LeadController::class, 'createPortalAccount'])->middleware(['auth:sanctum', 'role:admin']);
+
+// Client portal — the signed-in client's own project, client-safe fields only.
+Route::get('/portal/lead', [PortalController::class, 'show'])->middleware(['auth:sanctum', 'role:client']);
 
 // Same role gate as /leads — see AnalyticsController's report note on
 // whether `economics` (revenue/CAC/LTV) should be admin-only.

@@ -34,6 +34,7 @@ export function DateInput({
   className,
   placeholder = "Select date",
   disabled = false,
+  ariaLabel,
 }) {
   const [open, setOpen] = useState(false);
   const { date, time } = parseValue(value, withTime);
@@ -52,6 +53,7 @@ export function DateInput({
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger
           disabled={disabled}
+          aria-label={ariaLabel}
           className={cn(
             fieldBase,
             "flex h-10 w-full items-center gap-2 whitespace-nowrap px-3 text-left text-[0.8125rem]",

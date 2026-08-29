@@ -34,17 +34,26 @@ function reducer(state, action) {
         case "reset":
             return Object.assign(Object.assign({}, createSeedState()), { hydrated: true });
         // A dev's project list is real leads now (LeadController's developer
-        // scoping), but step/preview/live-URL tracking is deliberately still
-        // local-only (see config/dev.js) — no backend for it exists yet. This
-        // lazily gives a real lead a local delivery record, keyed by its real
-        // id, the first time a dev opens it, so the existing mock-backed
-        // StepList/PreviewManager/LiveSitePanel/UpdateComposer keep working
-        // unchanged and the client portal (reading the same `state.leads`)
-        // can still show progress for that id. A no-op if one already exists.
-        case "project/ensured":
-            if (state.leads.some((lead) => lead.id === action.lead.id))
-                return state;
-            return Object.assign(Object.assign({}, state), { leads: [...state.leads, action.lead] });
+        // scoping), and so are milestones/previews/live URL (ProjectController)
+        // — this seeds (or re-syncs) a local record for a real lead, keyed by
+        // its real id, so the existing StepList/PreviewManager/LiveSitePanel
+        // keep working unchanged. Unlike a plain seed, an existing record is
+        // MERGED, not skipped — DevProjectView calls this every time its own
+        // GET /api/leads/{id} resolves, which is how a page refresh (or a
+        // teammate's edit) reaches this browser's copy. Only the fields that
+        // actually come from that GET are overwritten on an existing record —
+        // `notes`/`activity`/`updates` etc. stay whatever this browser already
+        // had, since the server doesn't return those here.
+        case "project/ensured": {
+            const existing = state.leads.find((lead) => lead.id === action.lead.id);
+            if (!existing) {
+                return Object.assign(Object.assign({}, state), { leads: [...state.leads, action.lead] });
+            }
+            const { milestones, previews, liveUrl, name, company, projectSummary } = action.lead;
+            return Object.assign(Object.assign({}, state), { leads: state.leads.map((lead) => lead.id === action.lead.id
+                    ? Object.assign(Object.assign({}, lead), { milestones, previews, liveUrl, name, company, projectSummary })
+                    : lead) });
+        }
         case "lead/updated":
             return Object.assign(Object.assign({}, state), { leads: state.leads.map((lead) => lead.id === action.lead.id ? action.lead : lead) });
         case "lead/removed":
@@ -291,8 +300,11 @@ export function CrmProvider({ children }) {
                 dispatch({ type: "lead/updated", lead: result.data });
             return result;
         },
-        /** See "project/ensured" above — sync, local-only, no API call. */
-        ensureProject({ id, name, company, projectSummary = null }) {
+        /** See "project/ensured" above — sync, local-only, no API call.
+         *  `milestones`/`previews`/`liveUrl` come from a real GET /api/leads/{id}
+         *  when the caller has them (DevProjectView does); default to empty so a
+         *  first-time seed with only id/name/company still renders. */
+        ensureProject({ id, name, company, projectSummary = null, milestones = [], previews = [], liveUrl = null }) {
             dispatch({
                 type: "project/ensured",
                 lead: {
@@ -308,12 +320,12 @@ export function CrmProvider({ children }) {
                     createdDaysAgo: 0,
                     notes: [],
                     activity: [],
-                    milestones: [],
+                    milestones,
                     files: [],
                     invoices: [],
                     projectSummary,
-                    previews: [],
-                    liveUrl: null,
+                    previews,
+                    liveUrl,
                     updates: [],
                 },
             });

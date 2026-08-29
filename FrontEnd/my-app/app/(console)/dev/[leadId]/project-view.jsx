@@ -1,4 +1,6 @@
 "use client";
+import { useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { PageShell } from "@/components/console/page-shell";
 import { useSetPageTitle } from "@/components/console/page-title";
 import { DevMissing, DevSkeleton } from "@/components/dev/dev-states";
@@ -8,6 +10,8 @@ import { DevProjectHeader } from "@/components/dev/project-header";
 import { StepList } from "@/components/dev/step-list";
 import { UpdateComposer } from "@/components/dev/update-composer";
 import { devConfig } from "@/config/dev";
+import { api } from "@/lib/axios";
+import { mapProjectFields } from "@/lib/crm-api";
 import { useCrm } from "@/lib/store/crm-store";
 import { selectLeadById, selectProjectProgress } from "@/lib/store/selectors";
 const { content, features, routes } = devConfig;
@@ -18,19 +22,36 @@ const { content, features, routes } = devConfig;
 // legitimately works across every client — see usePortalLead() for why the
 // portal avoids an id in the client's address bar.
 export function DevProjectView({ leadId }) {
-    const { state } = useCrm();
+    const { state, actions } = useCrm();
+    // Milestones/previews/liveUrl are real (ProjectController) — this is the
+    // one place that reads them, on mount and on every refetch, so opening a
+    // project fresh (or refreshing the page) always shows what's actually on
+    // the server rather than whatever this browser last had.
+    const { data: realLead, isError } = useQuery({
+        queryKey: ["leads", leadId],
+        queryFn: async () => (await api.get(`/api/leads/${leadId}`)).data,
+    });
+    useEffect(() => {
+        if (!realLead)
+            return;
+        actions.ensureProject({
+            id: String(realLead.id),
+            name: realLead.full_name,
+            company: realLead.business_type,
+            projectSummary: realLead.need_description,
+            ...mapProjectFields(realLead),
+        });
+    }, [realLead, actions]);
     const lead = selectLeadById(state, leadId);
     useSetPageTitle({
         title: lead?.name ?? null,
         subtitle: lead?.company ?? null,
         parent: { label: content.detail.back, href: routes.home },
     });
-    // A project we can already see renders immediately, server-side included;
-    // only an unresolved id waits a frame for hydration.
     if (!lead) {
-        if (!state.hydrated)
-            return <DevSkeleton />;
-        return <DevMissing />;
+        if (isError)
+            return <DevMissing />;
+        return <DevSkeleton />;
     }
     const progress = selectProjectProgress(lead);
     return (<PageShell>

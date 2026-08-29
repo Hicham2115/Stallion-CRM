@@ -14,19 +14,16 @@ import { SegmentedControl } from "@/components/deck/segmented-control";
 import { devConfig } from "@/config/dev";
 import { api } from "@/lib/axios";
 import { getErrorMessage } from "@/lib/get-error-message";
-import { useCrm } from "@/lib/store/crm-store";
 import { cn } from "@/lib/utils";
 const { content, features, routes } = devConfig;
 // The list is real leads (GET /api/leads) — the backend always scopes this
 // to leads where the signed-in dev is an assigned developer
 // (LeadController::index), so there's no "all projects" view to
-// accidentally show here. Step checklists/previews/live URL aren't real yet
-// (see config/dev.js) — opening a card lazily gives that real lead a local
-// (mock-store) delivery record, keyed by its real id, so the existing
-// step-editor keeps working exactly as it did (actions.ensureProject).
+// accidentally show here. Step checklists/previews/live URL are real too
+// (ProjectController) — DevProjectView fetches and syncs them itself once
+// a card is opened, so this list only has to navigate there.
 export function ProjectsView() {
   const router = useRouter();
-  const { actions } = useCrm();
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("all");
 
@@ -60,11 +57,6 @@ export function ProjectsView() {
   const filtering = query.trim().length > 0 || status !== "all";
 
   function openProject(lead) {
-    actions.ensureProject({
-      id: String(lead.id),
-      name: lead.full_name,
-      company: lead.business_type,
-    });
     router.push(routes.project(String(lead.id)));
   }
 

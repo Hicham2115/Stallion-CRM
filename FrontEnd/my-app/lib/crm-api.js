@@ -22,8 +22,14 @@
  *    2. Replace each TODO block with the real call.
  *    3. Delete lib/mock/ and lib/store/persistence.ts.
  *    4. Turn off consoleConfig.features.mockDataChip.
+ *
+ *  The milestone/preview/live-URL functions below are ALREADY wired to the
+ *  real backend, ahead of the full flip above — the dev workspace's project
+ *  data no longer lives only in this browser's localStorage.
  */
 import { pipelineConfig } from "@/config/pipeline";
+import { api } from "@/lib/axios";
+import { getErrorMessage } from "@/lib/get-error-message";
 /**
  * Flip to `true` once the TODO blocks below actually call your backend.
  *
@@ -249,33 +255,55 @@ export function normalizeMilestones(milestones) {
 function applyToLead(lead, changes) {
     return Object.assign(Object.assign({}, lead), changes);
 }
+/**
+ * MILESTONES, PREVIEWS AND LIVE URL ARE REAL NOW — ahead of the rest of this
+ * file. The backend re-derives `status` the same way normalizeMilestones()
+ * above does (see ProjectController::normalizeStatuses), so these functions
+ * only translate this shape to/from Laravel's and never compute it locally.
+ */
+/** A Laravel LeadMilestone row -> the shape every component here expects. */
+function mapMilestone(m) {
+    return { id: String(m.id), label: m.label, status: m.status, targetDate: m.target_date };
+}
+/** A Laravel LeadPreview row -> the shape every component here expects. */
+function mapPreview(p) {
+    const updatedDaysAgo = p.updated_at
+        ? Math.max(0, Math.floor((Date.now() - new Date(p.updated_at).getTime()) / 86400000))
+        : 0;
+    return {
+        id: String(p.id),
+        label: p.label,
+        note: p.note ?? undefined,
+        imageUrl: p.image_url ?? null,
+        url: p.url ?? null,
+        updatedDaysAgo,
+    };
+}
+/** A lead as returned by GET /api/leads/{id} -> the delivery fields
+ *  ensureProject() seeds the mock store with. Shared with crm-store.jsx so
+ *  a dev opening a project (or refreshing the page) always shows real data. */
+export function mapProjectFields(realLead) {
+    return {
+        milestones: (realLead.milestones ?? []).map(mapMilestone),
+        previews: (realLead.previews ?? []).map(mapPreview),
+        liveUrl: realLead.live_url ?? null,
+    };
+}
 /** Add a project step to the end of the list. */
 export async function addMilestone(lead, input) {
     const label = input.label.trim();
     if (!label) {
         return { ok: false, message: "A step needs a name.", field: "label" };
     }
-    if (!CRM_BACKEND_CONNECTED) {
-        await delay(200);
-        const milestone = {
-            id: localId("ms"),
+    try {
+        const { data } = await api.post(`/api/leads/${lead.id}/milestones`, {
             label,
-            // Normalisation immediately below decides the real value. Starting at
-            // "pending" rather than guessing keeps the rule in one place.
-            status: "pending",
-            targetDate: input.targetDate ?? null,
-        };
-        return {
-            ok: true,
-            data: applyToLead(lead, {
-                milestones: normalizeMilestones([...lead.milestones, milestone]),
-            }),
-        };
+            target_date: input.targetDate ?? null,
+        });
+        return { ok: true, data: applyToLead(lead, { milestones: data.milestones.map(mapMilestone) }) };
+    } catch (error) {
+        return { ok: false, message: getErrorMessage(error) };
     }
-    // TODO(backend): POST /api/leads/{id}/milestones { label, targetDate }
-    //   Return the updated lead, not just the new milestone — the whole point of
-    //   normalizeMilestones() is that adding one step can change another.
-    return notImplemented("addMilestone");
 }
 /**
  * Change one step: tick it, rename it, or set its target date.
@@ -289,31 +317,27 @@ export async function updateMilestone(lead, milestone) {
     if (!label) {
         return { ok: false, message: "A step needs a name.", field: "label" };
     }
-    if (!CRM_BACKEND_CONNECTED) {
-        await delay(160);
-        return {
-            ok: true,
-            data: applyToLead(lead, {
-                milestones: normalizeMilestones(lead.milestones.map((entry) => entry.id === milestone.id ? Object.assign(Object.assign({}, milestone), { label }) : entry)),
-            }),
-        };
+    try {
+        const { data } = await api.patch(`/api/leads/${lead.id}/milestones/${milestone.id}`, {
+            label,
+            target_date: milestone.targetDate ?? null,
+            // The server only ever accepts done/pending (the checkbox) and
+            // re-derives in_progress itself — see mapProjectFields's note.
+            status: milestone.status === "done" ? "done" : "pending",
+        });
+        return { ok: true, data: applyToLead(lead, { milestones: data.milestones.map(mapMilestone) }) };
+    } catch (error) {
+        return { ok: false, message: getErrorMessage(error) };
     }
-    // TODO(backend): PATCH /api/leads/{id}/milestones/{milestoneId}
-    return notImplemented("updateMilestone");
 }
 /** Remove a step. The client's percentage changes as a result. */
 export async function removeMilestone(lead, milestoneId) {
-    if (!CRM_BACKEND_CONNECTED) {
-        await delay(200);
-        return {
-            ok: true,
-            data: applyToLead(lead, {
-                milestones: normalizeMilestones(lead.milestones.filter((entry) => entry.id !== milestoneId)),
-            }),
-        };
+    try {
+        const { data } = await api.delete(`/api/leads/${lead.id}/milestones/${milestoneId}`);
+        return { ok: true, data: applyToLead(lead, { milestones: data.milestones.map(mapMilestone) }) };
+    } catch (error) {
+        return { ok: false, message: getErrorMessage(error) };
     }
-    // TODO(backend): DELETE /api/leads/{id}/milestones/{milestoneId}
-    return notImplemented("removeMilestone");
 }
 /**
  * Persist a new step order.
@@ -324,27 +348,14 @@ export async function removeMilestone(lead, milestoneId) {
  * unknown ids are ignored, so a stale client cannot corrupt the array.
  */
 export async function reorderMilestones(lead, orderedIds) {
-    if (!CRM_BACKEND_CONNECTED) {
-        await delay(160);
-        const byId = new Map(lead.milestones.map((entry) => [entry.id, entry]));
-        const reordered = orderedIds
-            .map((id) => byId.get(id))
-            .filter((entry) => Boolean(entry));
-        // A safety net, not a nicety: if the caller sent a short list, the missing
-        // steps would silently vanish from the client's progress.
-        if (reordered.length !== lead.milestones.length) {
-            return {
-                ok: false,
-                message: "That reorder did not match the current steps. Reload and try again.",
-            };
-        }
-        return {
-            ok: true,
-            data: applyToLead(lead, { milestones: normalizeMilestones(reordered) }),
-        };
+    try {
+        const { data } = await api.patch(`/api/leads/${lead.id}/milestones/reorder`, {
+            ids: orderedIds.map(Number),
+        });
+        return { ok: true, data: applyToLead(lead, { milestones: data.milestones.map(mapMilestone) }) };
+    } catch (error) {
+        return { ok: false, message: getErrorMessage(error) };
     }
-    // TODO(backend): PUT /api/leads/{id}/milestones/order { orderedIds }
-    return notImplemented("reorderMilestones");
 }
 /**
  * Share a preview with the client.
@@ -367,39 +378,29 @@ export async function addPreview(lead, input) {
     if (!input.imageUrl && !input.url) {
         return { ok: false, message: "Add a screenshot or a link.", field: "url" };
     }
-    if (!CRM_BACKEND_CONNECTED) {
-        await delay(240);
-        const preview = {
-            id: localId("prev"),
+    try {
+        // The screenshot arrives here as a base64 data URL (lib/image-upload.js
+        // already downsized/encoded it) — the server decodes it to a real file.
+        const { data } = await api.post(`/api/leads/${lead.id}/previews`, {
             label,
-            note: input.note?.trim() || undefined,
-            imageUrl: input.imageUrl ?? null,
+            note: input.note?.trim() || null,
             url: input.url ?? null,
-            updatedDaysAgo: 0,
-        };
-        return {
-            ok: true,
-            data: applyToLead(lead, { previews: [preview, ...lead.previews] }),
-        };
+            image_data_url: input.imageUrl ?? null,
+        });
+        return { ok: true, data: applyToLead(lead, { previews: data.previews.map(mapPreview) }) };
+    } catch (error) {
+        return { ok: false, message: getErrorMessage(error) };
     }
-    // TODO(backend): POST /api/leads/{id}/previews
-    return notImplemented("addPreview");
 }
-/** Unshare a preview. It disappears from the client's dashboard. */
+/** Unshare a preview. It disappears from the client's dashboard — the
+ *  server deletes the stored file too. */
 export async function removePreview(lead, previewId) {
-    if (!CRM_BACKEND_CONNECTED) {
-        await delay(200);
-        return {
-            ok: true,
-            data: applyToLead(lead, {
-                previews: lead.previews.filter((entry) => entry.id !== previewId),
-            }),
-        };
+    try {
+        const { data } = await api.delete(`/api/leads/${lead.id}/previews/${previewId}`);
+        return { ok: true, data: applyToLead(lead, { previews: data.previews.map(mapPreview) }) };
+    } catch (error) {
+        return { ok: false, message: getErrorMessage(error) };
     }
-    // TODO(backend): DELETE /api/leads/{id}/previews/{previewId}
-    //   Delete the stored object too, or an unshared preview stays reachable by
-    //   anyone who kept the URL.
-    return notImplemented("removePreview");
 }
 /**
  * Set or clear the public URL.
@@ -417,12 +418,12 @@ export async function setLiveUrl(lead, url) {
             field: "url",
         };
     }
-    if (!CRM_BACKEND_CONNECTED) {
-        await delay(220);
-        return { ok: true, data: applyToLead(lead, { liveUrl: trimmed || null }) };
+    try {
+        const { data } = await api.patch(`/api/leads/${lead.id}/live-url`, { live_url: trimmed || null });
+        return { ok: true, data: applyToLead(lead, { liveUrl: data.live_url }) };
+    } catch (error) {
+        return { ok: false, message: getErrorMessage(error) };
     }
-    // TODO(backend): PATCH /api/leads/{id} { liveUrl }
-    return notImplemented("setLiveUrl");
 }
 /**
  * Post a note to the client's own updates feed.
