@@ -33,7 +33,7 @@ export function ResetDemoPanel() {
             store v{STORE_VERSION}
           </span>
 
-          <Button variant="outline" size="lg" onClick={() => setOpen(true)} className="h-10 rounded-xl">
+          <Button variant="outline" size="lg" onClick={() => setOpen(true)} className="h-10 rounded-md">
             <RotateCcw aria-hidden/>
             {content.resetLabel}
           </Button>

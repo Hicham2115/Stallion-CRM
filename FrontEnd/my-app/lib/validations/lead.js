@@ -41,7 +41,10 @@ export const DESIRED_LAUNCH_OPTIONS = [
   "exploring",
 ];
 
-const MAX_BRIEF_FILE_BYTES = 10 * 1024 * 1024;
+// Matches this server's actual PHP upload_max_filesize — a bigger client
+// cap here would just mean the file silently never attaches (LeadController
+// treats a failed brief upload as best-effort and creates the lead anyway).
+const MAX_BRIEF_FILE_BYTES = 2 * 1024 * 1024;
 export const ACCEPTED_BRIEF_FILE_TYPES = [
   "application/pdf",
   "application/msword",
@@ -92,7 +95,7 @@ export const stepBantSchema = z.object({
 export function validateBriefFile(file) {
   if (!file || file.size === 0) return { ok: true };
   if (file.size > MAX_BRIEF_FILE_BYTES) {
-    return { ok: false, message: "File must be under 10MB" };
+    return { ok: false, message: "File must be under 2MB" };
   }
   if (!ACCEPTED_BRIEF_FILE_TYPES.includes(file.type)) {
     return { ok: false, message: "Accepted formats: PDF, Word, PNG, JPG" };

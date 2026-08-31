@@ -26,7 +26,7 @@ threadId, }) {
     return (<div className="deck-scroll flex-1 overflow-y-auto px-4 py-5 sm:px-5" role="log" aria-label={content.messageLogLabel} aria-live="polite">
       <ol className="flex flex-col gap-3">
         {messages.map((message) => (<li key={message.id} className={cn("flex flex-col", message.fromMe ? "items-end" : "items-start")}>
-            <div className={cn("max-w-[85%] rounded-2xl px-3.5 py-2.5 sm:max-w-[75%]", message.fromMe
+            <div className={cn("max-w-[85%] rounded-md px-3.5 py-2.5 sm:max-w-[75%]", message.fromMe
                 ? "rounded-br-md bg-brand/[0.14] text-ink"
                 : "rounded-bl-md border border-hairline bg-white/[0.035] text-ink-soft")}>
               <span className="sr-only">

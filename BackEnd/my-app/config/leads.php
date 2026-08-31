@@ -26,4 +26,52 @@ return [
 
     'desired_launch_options' => ['asap', '1-3mo', '3-6mo', '6mo+', 'exploring'],
 
+    /*
+     * The one official pipeline. Every lead/opportunity moves through these,
+     * in order, except `lost` which can happen from most stages.
+     */
+    'stages' => [
+        'new_lead',
+        'contacted',
+        'consult_booked',
+        'consult_completed',
+        'mvp_in_progress',
+        'closing_booked',
+        'won',
+        'in_delivery',
+        'delivered',
+        'lost',
+    ],
+
+    'lost_reasons' => [
+        'price',
+        'timing',
+        'trust',
+        'scope',
+        'went_elsewhere',
+        'no_response',
+        'not_qualified',
+        'other',
+    ],
+
+    /*
+     * Prompt 4: what a consult can conclude with. Kept here rather than a
+     * new enum class, same pattern as `stages`/`lost_reasons`.
+     */
+    'consult_outcomes' => [
+        'agreed_mvp',
+        'need_another_meeting',
+        'lost',
+    ],
+
+    /*
+     * LTV = contract_value + (recurring_mrr × expected retention months) − project_cost.
+     * "Expected retention months" is a business assumption, not something
+     * derivable from the data — it must be set here explicitly (an env var,
+     * so it can change without a deploy) before LTV/LTV:CAC can be
+     * calculated. KpiService returns both as null, not a guessed number,
+     * while this is unset.
+     */
+    'expected_retention_months' => env('EXPECTED_RETENTION_MONTHS'),
+
 ];

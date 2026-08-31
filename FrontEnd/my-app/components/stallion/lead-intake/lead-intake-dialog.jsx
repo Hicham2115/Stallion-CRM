@@ -27,7 +27,7 @@ export function LeadIntakeDialog({ open, onOpenChange }) {
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-h-[90vh] w-full overflow-y-auto border border-white/10 bg-[#15181d] p-5 text-white sm:max-w-lg sm:p-6">
+      <DialogContent className="max-h-[90vh] w-full overflow-y-auto border border-white/10 bg-[#15181d] p-5 text-white sm:max-w-xl sm:p-6">
         {!submitted && (
           <DialogHeader className="mb-1">
             <DialogTitle className="font-heading text-xl text-white">

@@ -33,10 +33,27 @@ function reducer(state, action) {
             return Object.assign(Object.assign({}, action.state), { hydrated: true });
         case "reset":
             return Object.assign(Object.assign({}, createSeedState()), { hydrated: true });
-        case "lead/added":
-            // Newest first, so a client added from the dialog appears at the top of
-            // the table where the user is looking, not buried on page four.
-            return Object.assign(Object.assign({}, state), { leads: [action.lead, ...state.leads] });
+        // A dev's project list is real leads now (LeadController's developer
+        // scoping), and so are milestones/previews/live URL (ProjectController)
+        // — this seeds (or re-syncs) a local record for a real lead, keyed by
+        // its real id, so the existing StepList/PreviewManager/LiveSitePanel
+        // keep working unchanged. Unlike a plain seed, an existing record is
+        // MERGED, not skipped — DevProjectView calls this every time its own
+        // GET /api/leads/{id} resolves, which is how a page refresh (or a
+        // teammate's edit) reaches this browser's copy. Only the fields that
+        // actually come from that GET are overwritten on an existing record —
+        // `notes`/`activity`/`updates` etc. stay whatever this browser already
+        // had, since the server doesn't return those here.
+        case "project/ensured": {
+            const existing = state.leads.find((lead) => lead.id === action.lead.id);
+            if (!existing) {
+                return Object.assign(Object.assign({}, state), { leads: [...state.leads, action.lead] });
+            }
+            const { milestones, previews, liveUrl, name, company, projectSummary } = action.lead;
+            return Object.assign(Object.assign({}, state), { leads: state.leads.map((lead) => lead.id === action.lead.id
+                    ? Object.assign(Object.assign({}, lead), { milestones, previews, liveUrl, name, company, projectSummary })
+                    : lead) });
+        }
         case "lead/updated":
             return Object.assign(Object.assign({}, state), { leads: state.leads.map((lead) => lead.id === action.lead.id ? action.lead : lead) });
         case "lead/removed":
@@ -61,16 +78,6 @@ function reducer(state, action) {
             // job. See logCall() in lib/crm-api.ts.
             return Object.assign(Object.assign({}, state), { leads: state.leads.map((lead) => lead.id === action.leadId
                     ? Object.assign(Object.assign({}, lead), { activity: [...lead.activity, action.event] }) : lead) });
-        case "rep/added":
-            return Object.assign(Object.assign({}, state), { reps: [...state.reps, action.rep] });
-        case "rep/updated":
-            return Object.assign(Object.assign({}, state), { reps: state.reps.map((rep) => rep.id === action.rep.id ? action.rep : rep) });
-        case "rep/removed":
-            return Object.assign(Object.assign({}, state), { reps: state.reps.filter((rep) => rep.id !== action.id), 
-                // Leads keep their history but lose the assignment, rather than
-                // pointing at a rep that no longer exists.
-                leads: state.leads.map((lead) => lead.assignedRepId === action.id
-                    ? Object.assign(Object.assign({}, lead), { assignedRepId: null }) : lead) });
         case "stage/renamed":
             return Object.assign(Object.assign({}, state), { stageOrder: state.stageOrder.map((stage) => stage.id === action.id ? Object.assign(Object.assign({}, stage), { label: action.label }) : stage) });
         case "stage/reordered":
@@ -150,12 +157,6 @@ export function CrmProvider({ children }) {
      */
     const authorName = selectSessionUser(state, session).name;
     const actions = useMemo(() => ({
-        async addClient(input) {
-            const result = await crmApi.createClient(Object.assign({ authorName }, input));
-            if (result.ok)
-                dispatch({ type: "lead/added", lead: result.data });
-            return result;
-        },
         async deleteLead(id) {
             const result = await crmApi.deleteLead(id);
             if (result.ok)
@@ -201,30 +202,6 @@ export function CrmProvider({ children }) {
                     event: result.data.event,
                 });
             }
-            return result;
-        },
-        async addRep(input) {
-            const result = await crmApi.createRep(input);
-            if (result.ok)
-                dispatch({ type: "rep/added", rep: result.data });
-            return result;
-        },
-        async saveRep(rep) {
-            const result = await crmApi.updateRep(rep);
-            if (result.ok)
-                dispatch({ type: "rep/updated", rep: result.data });
-            return result;
-        },
-        async setRepActive(rep, active) {
-            const result = await crmApi.setRepActive(rep, active);
-            if (result.ok)
-                dispatch({ type: "rep/updated", rep: result.data });
-            return result;
-        },
-        async deleteRep(id) {
-            const result = await crmApi.deleteRep(id);
-            if (result.ok)
-                dispatch({ type: "rep/removed", id: result.data });
             return result;
         },
         async renameStage(id, label) {
@@ -322,6 +299,36 @@ export function CrmProvider({ children }) {
             if (result.ok)
                 dispatch({ type: "lead/updated", lead: result.data });
             return result;
+        },
+        /** See "project/ensured" above — sync, local-only, no API call.
+         *  `milestones`/`previews`/`liveUrl` come from a real GET /api/leads/{id}
+         *  when the caller has them (DevProjectView does); default to empty so a
+         *  first-time seed with only id/name/company still renders. */
+        ensureProject({ id, name, company, projectSummary = null, milestones = [], previews = [], liveUrl = null }) {
+            dispatch({
+                type: "project/ensured",
+                lead: {
+                    id,
+                    name,
+                    company,
+                    phone: null,
+                    email: null,
+                    source: null,
+                    stageId: null,
+                    assignedRepId: null,
+                    daysInStage: 0,
+                    createdDaysAgo: 0,
+                    notes: [],
+                    activity: [],
+                    milestones,
+                    files: [],
+                    invoices: [],
+                    projectSummary,
+                    previews,
+                    liveUrl,
+                    updates: [],
+                },
+            });
         },
         resetDemoData() {
             clearPersistedState();

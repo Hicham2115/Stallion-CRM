@@ -13,12 +13,12 @@ export function ClientSearch({ query, onQueryChange, resultCount, className, }) 
       <div className="group relative">
         <Search aria-hidden className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-ink-muted transition-colors group-focus-within:text-brand"/>
 
-        <input type="search" value={query} onChange={(event) => onQueryChange(event.target.value)} placeholder={content.searchPlaceholder} aria-label={content.searchPlaceholder} aria-describedby="client-search-status" className={cn("deck-input h-10 w-full rounded-xl border border-hairline bg-white/[0.02] pl-10 text-[0.875rem] text-ink caret-brand outline-none transition duration-200", "placeholder:text-ink-muted hover:border-hairline-strong hover:bg-white/[0.035]", "focus:border-brand/55 focus:bg-white/[0.05] focus:ring-4 focus:ring-brand/10", searching ? "pr-10" : "pr-3.5",
+        <input type="search" value={query} onChange={(event) => onQueryChange(event.target.value)} placeholder={content.searchPlaceholder} aria-label={content.searchPlaceholder} aria-describedby="client-search-status" className={cn("deck-input h-10 w-full rounded-md border border-hairline bg-white/[0.02] pl-10 text-[0.875rem] text-ink caret-brand outline-none transition duration-200", "placeholder:text-ink-muted hover:border-hairline-strong hover:bg-white/[0.035]", "focus:border-brand/55 focus:bg-white/[0.05] focus:ring-4 focus:ring-brand/10", searching ? "pr-10" : "pr-3.5",
         // Safari paints its own clear affordance on type="search"; hide it
         // in favor of ours.
         "[&::-webkit-search-cancel-button]:appearance-none")}/>
 
-        {searching && (<button type="button" onClick={() => onQueryChange("")} aria-label={content.searchClearLabel} className="absolute right-2 top-1/2 grid size-7 -translate-y-1/2 place-items-center rounded-lg text-ink-muted transition hover:bg-white/[0.06] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50">
+        {searching && (<button type="button" onClick={() => onQueryChange("")} aria-label={content.searchClearLabel} className="absolute right-2 top-1/2 grid size-7 -translate-y-1/2 place-items-center rounded-md text-ink-muted transition hover:bg-white/[0.06] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50">
             <X aria-hidden className="size-3.5"/>
           </button>)}
       </div>

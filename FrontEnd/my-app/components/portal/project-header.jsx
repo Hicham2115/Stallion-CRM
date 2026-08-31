@@ -15,7 +15,7 @@ function stateOf(progress) {
             label: content.milestones.status.in_progress,
         };
     }
-    return { tone: "neutral", label: content.status.startingTitle };
+    return { tone: "neutral", label: content.header.startingLabel };
 }
 export function ProjectHeader({ lead, progress, }) {
     const state = stateOf(progress);

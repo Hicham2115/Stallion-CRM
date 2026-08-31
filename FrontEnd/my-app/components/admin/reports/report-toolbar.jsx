@@ -1,5 +1,5 @@
 "use client";
-import { Download, Printer } from "lucide-react";
+import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, } from "@/components/ui/select";
 import { reportsConfig } from "@/config/reports";
@@ -17,7 +17,7 @@ exportCount, }) {
         </label>
 
         <Select value={rangeDays} onValueChange={(value) => onRangeChange(value)}>
-          <SelectTrigger id="report-range" size="default" className="h-10 min-w-[10.5rem] rounded-xl border-hairline bg-white/[0.03] text-[0.875rem] text-ink hover:bg-white/[0.06]">
+          <SelectTrigger id="report-range" size="default" className="h-10 min-w-[10.5rem] rounded-md border-hairline bg-white/[0.03] text-[0.875rem] text-ink hover:bg-white/[0.06]">
             <SelectValue />
           </SelectTrigger>
 
@@ -31,14 +31,9 @@ exportCount, }) {
 
       {features.exports && (
         <div className="flex items-center gap-2" data-print="hide">
-          <Button variant="outline" size="lg" onClick={onExportCsv} disabled={exportCount === 0} title={content.exportCsvHint} className="h-10 rounded-xl">
+          <Button variant="outline" size="lg" onClick={onExportCsv} disabled={exportCount === 0} title={content.exportCsvHint} className="h-10 rounded-md">
             <Download aria-hidden/>
             {content.exportCsvLabel}
-          </Button>
-
-          <Button variant="outline" size="lg" onClick={() => window.print()} title={content.exportPdfHint} className="h-10 rounded-xl">
-            <Printer aria-hidden/>
-            {content.exportPdfLabel}
           </Button>
         </div>)}
     </div>);

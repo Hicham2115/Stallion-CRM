@@ -57,7 +57,7 @@ export function ChatView() {
         <Panel className={cn("flex min-h-0 flex-col md:col-span-8 lg:col-span-9", mobilePane === "list" && "hidden md:flex")}>
           {thread && rep ? (<>
               <header className="flex items-center gap-3 border-b border-hairline px-4 py-3.5 sm:px-5">
-                <button type="button" onClick={() => setMobilePane("list")} className="-ml-1 grid size-8 shrink-0 place-items-center rounded-lg text-ink-muted transition-colors hover:bg-white/[0.06] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60 md:hidden" aria-label={content.backLabel}>
+                <button type="button" onClick={() => setMobilePane("list")} className="-ml-1 grid size-8 shrink-0 place-items-center rounded-md text-ink-muted transition-colors hover:bg-white/[0.06] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60 md:hidden" aria-label={content.backLabel}>
                   <ChevronLeft aria-hidden className="size-4"/>
                 </button>
 

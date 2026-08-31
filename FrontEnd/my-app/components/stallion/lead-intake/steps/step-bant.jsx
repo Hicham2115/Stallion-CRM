@@ -5,6 +5,7 @@ import {
   Paperclip,
   X,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -51,6 +52,9 @@ export function StepBant({
       onFileErrorChange(result.message);
       onBriefFileChange(null);
       e.target.value = "";
+      toast.error(result.message, {
+        description: "You can still submit without an attachment.",
+      });
       return;
     }
     onFileErrorChange(null);
@@ -58,7 +62,7 @@ export function StepBant({
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex min-w-0 flex-col gap-5">
       <div>
         <h3 className="font-heading text-lg font-bold text-white">
           Let&apos;s talk scope
@@ -112,7 +116,7 @@ export function StepBant({
         }}
       >
         {(field) => (
-          <div className="flex flex-col gap-1.5">
+          <div className="flex min-w-0 flex-col gap-1.5">
             <Label htmlFor="need_description">
               <MessageSquare className="size-3.5 text-white/40" /> What problem
               are you solving?

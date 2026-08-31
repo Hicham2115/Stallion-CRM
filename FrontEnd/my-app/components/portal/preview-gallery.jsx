@@ -17,7 +17,7 @@ export function PreviewGallery({ previews }) {
 
       <PanelBody>
         {previews.length === 0 ? (<EmptyState icon={MonitorPlay} title={content.previews.emptyTitle} description={content.previews.emptyDescription}/>) : (<ul className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
-            {previews.map((preview) => (<li key={preview.id} className="flex flex-col overflow-hidden rounded-xl border border-hairline bg-white/[0.02]">
+            {previews.map((preview) => (<li key={preview.id} className="flex flex-col overflow-hidden rounded-md border border-hairline bg-white/[0.02]">
                 <PreviewTile preview={preview}/>
 
                 <div className="flex flex-1 flex-col gap-1.5 p-4">

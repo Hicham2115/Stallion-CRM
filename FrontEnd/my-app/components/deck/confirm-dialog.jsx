@@ -35,7 +35,7 @@ destructive = true, }) {
         }}>
       <DialogContent className="border border-hairline bg-deck-card p-6 sm:max-w-md">
         <div className="flex gap-4">
-          <span aria-hidden className={cn("grid size-10 shrink-0 place-items-center rounded-xl border",
+          <span aria-hidden className={cn("grid size-10 shrink-0 place-items-center rounded-md border",
         // --status-critical token, not Tailwind's red ramp, so red means one
         // thing everywhere in the console.
         destructive
@@ -54,7 +54,7 @@ destructive = true, }) {
             </DialogDescription>
 
             {recordName && (
-        <p className="mt-3 truncate rounded-lg border border-hairline bg-white/[0.03] px-3 py-2 text-[0.875rem] font-medium text-ink">
+        <p className="mt-3 truncate rounded-md border border-hairline bg-white/[0.03] px-3 py-2 text-[0.875rem] font-medium text-ink">
                 {recordName}
               </p>)}
           </div>

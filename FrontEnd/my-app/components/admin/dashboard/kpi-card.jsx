@@ -20,14 +20,14 @@ export function KpiCard({ definition, value, captionValue, sparkline, delta, rev
     const progress = definition.target && definition.target > 0
         ? Math.min((value / definition.target) * 100, 100)
         : 0;
-    return (<div className="reveal deck-inset relative flex flex-col overflow-hidden rounded-2xl border border-hairline bg-deck-surface p-5" style={{ "--reveal-delay": `${revealDelay}ms` }}>
+    return (<div className="reveal deck-inset relative flex flex-col overflow-hidden rounded-md border border-hairline bg-deck-surface p-5" style={{ "--reveal-delay": `${revealDelay}ms` }}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="font-mono text-[0.6875rem] uppercase tracking-[0.14em] text-ink-muted">
             {definition.label}
           </p>
 
-          {delta && (<span title={delta.title} className={cn("deck-nums mt-1.5 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-mono text-[0.625rem] tracking-[0.06em]", delta.title && "cursor-help",
+          {delta && (<span title={delta.title} className={cn("deck-nums mt-1.5 inline-flex items-center gap-1 rounded-md border px-2 py-0.5 font-mono text-[0.625rem] tracking-[0.06em]", delta.title && "cursor-help",
             // Direction is also carried by the sign in the label text, so
             // the chip reads in greyscale too.
             delta.direction === "up" &&
@@ -37,7 +37,7 @@ export function KpiCard({ definition, value, captionValue, sparkline, delta, rev
               {delta.label}
             </span>)}
         </div>
-        <span aria-hidden className="grid size-8 shrink-0 place-items-center rounded-lg border border-hairline bg-white/[0.03] text-ink-muted">
+        <span aria-hidden className="grid size-8 shrink-0 place-items-center rounded-md border border-hairline bg-white/[0.03] text-ink-muted">
           <Icon className="size-4"/>
         </span>
       </div>
@@ -63,5 +63,5 @@ export function KpiCard({ definition, value, captionValue, sparkline, delta, rev
 }
 // Matches the card's real height so the layout doesn't jump when data lands.
 export function KpiCardSkeleton({ className }) {
-    return (<div className={cn("deck-inset h-[10.5rem] animate-pulse rounded-2xl border border-hairline bg-deck-surface", className)}/>);
+    return (<div className={cn("deck-inset h-[10.5rem] animate-pulse rounded-md border border-hairline bg-deck-surface", className)}/>);
 }

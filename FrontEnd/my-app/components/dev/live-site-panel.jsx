@@ -85,7 +85,7 @@ export function LiveSitePanel({ lead }) {
             </p>)}
         </div>
 
-        {openSteps > 0 && (draft.trim() || lead.liveUrl) && (<p className="mt-3 flex items-start gap-2.5 rounded-xl border border-status-warning/25 bg-status-warning/[0.07] px-3.5 py-3 text-[0.8125rem] leading-relaxed text-status-warning">
+        {openSteps > 0 && (draft.trim() || lead.liveUrl) && (<p className="mt-3 flex items-start gap-2.5 rounded-md border border-status-warning/25 bg-status-warning/[0.07] px-3.5 py-3 text-[0.8125rem] leading-relaxed text-status-warning">
             <TriangleAlert aria-hidden className="mt-0.5 size-4 shrink-0"/>
             {template(copy.earlyWarning, { n: openSteps })}
           </p>)}

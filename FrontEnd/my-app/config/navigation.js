@@ -14,7 +14,7 @@
  *    - Change where a role lands ...... roleHome
  * ============================================================================
  */
-import { Bell, ChartColumn, CodeXml, Columns3, Eye, FolderOpen, LayoutDashboard, MessageSquare, PanelsTopLeft, Receipt, Settings, Users, } from "lucide-react";
+import { Bell, ChartColumn, CodeXml, Columns3, Eye, LayoutDashboard, PanelsTopLeft, Settings, Users, } from "lucide-react";
 import { adminConfig } from "@/config/admin";
 import { devConfig } from "@/config/dev";
 import { loginConfig } from "@/config/login";
@@ -60,6 +60,9 @@ export const navigation = {
                     title: "Pipeline",
                     subtitle: "Drag leads between stages as they move forward.",
                 },
+                /* Team Chat — disabled, not currently useful. Left here
+                   (not deleted) so it's a one-line uncomment if it comes
+                   back into scope later.
                 {
                     label: "Team Chat",
                     href: adminConfig.routes.chat,
@@ -68,6 +71,7 @@ export const navigation = {
                     title: "Team Chat",
                     subtitle: "Message any rep on your team.",
                 },
+                */
                 {
                     label: "Reports",
                     href: adminConfig.routes.reports,
@@ -129,8 +133,11 @@ export const navigation = {
                     // reached from the board, so the board is where you came from.
                     matchNested: true,
                     title: "My Pipeline",
-                    subtitle: "Your own leads, staged toward conversion.",
+                    subtitle: "Every lead, staged toward conversion.",
                 },
+                /* Team Chat — disabled, not currently useful. Left here
+                   (not deleted) so it's a one-line uncomment if it comes
+                   back into scope later.
                 {
                     label: "Team Chat",
                     href: repConfig.routes.chat,
@@ -139,6 +146,7 @@ export const navigation = {
                     title: "Team Chat",
                     subtitle: "Message your manager.",
                 },
+                */
                 {
                     label: "My Project",
                     href: portalConfig.routes.home,
@@ -154,22 +162,6 @@ export const navigation = {
                     roles: ["client"],
                     title: "Previews",
                     subtitle: "Everything we have shared with you so far.",
-                },
-                {
-                    label: "Files",
-                    href: portalConfig.routes.files,
-                    icon: FolderOpen,
-                    roles: ["client"],
-                    title: "Your files",
-                    subtitle: "Briefs, contracts and finished work.",
-                },
-                {
-                    label: "Invoices",
-                    href: portalConfig.routes.billing,
-                    icon: Receipt,
-                    roles: ["client"],
-                    title: "Invoices",
-                    subtitle: "What you have been billed, and what is outstanding.",
                 },
                 /* ------------------------------------------------------------------
                    THE DEV WORKSPACE

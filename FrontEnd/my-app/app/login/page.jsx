@@ -1,10 +1,12 @@
 import { BrandPanel } from "@/components/auth/brand-panel";
 import { LoginForm } from "@/components/auth/login-form";
+
 export const metadata = {
   title: "Log in",
   description:
     "Sign in to Stallion CRM to track dials, appointments and conversions across your team.",
 };
+
 export default function LoginPage() {
   return (
     <main data-surface="deck" className="relative isolate flex-1">

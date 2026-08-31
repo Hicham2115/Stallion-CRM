@@ -13,14 +13,16 @@
  *    - Rename an export file ......... content.csvFilePrefix
  * ============================================================================
  */
-import { Coins, TrendingUp, UserCheck, Users } from "lucide-react";
+import { Handshake, TrendingUp, UserCheck, Users } from "lucide-react";
 export const reportsConfig = {
     features: {
         exports: true,
         periodDeltas: true,
         sourceBreakdown: true,
-        dialsPerRep: true,
-        repEfficiency: true,
+        // Disabled — no real call/dial tracking exists anywhere in the CRM
+        // (no calls table, no logging UI), so this stayed permanently mock.
+        dialsPerRep: false,
+        repEfficiency: false,
     },
     ranges: [
         { days: 7, label: "Last 7 days", comparisonLabel: "the previous 7 days" },
@@ -55,24 +57,24 @@ export const reportsConfig = {
             target: 100,
         },
         {
-            key: "revenue",
-            label: "Billed Revenue",
-            icon: Coins,
-            format: "currency",
-            foot: "caption",
-            // The prototype printed "453229 MAD" with no explanation of what it
-            // summed. A money figure nobody can define is worse than none, so the
-            // card says so on its face.
-            caption: "all invoices on {n} clients",
+            // Replaces the old "Billed Revenue" card — no contract value is
+            // captured anywhere in the CRM yet (see the session's financial-
+            // scope decision), so a revenue figure here would be permanently
+            // 0/fake. This is real: of consults that actually happened, how
+            // many turned into an MVP agreement.
+            key: "consultToMvpRate",
+            label: "Consult → MVP Rate",
+            icon: Handshake,
+            format: "percent",
+            foot: "progress",
+            target: 100,
         },
     ],
     content: {
         dialsTableCaption: "Sales reps ranked by dials, with conversions per 100 dials",
         rangeLabel: "Date range",
         exportCsvLabel: "Export CSV",
-        exportPdfLabel: "Export PDF",
         exportCsvHint: "Download the leads in this range as a spreadsheet",
-        exportPdfHint: "Open the print dialog — choose 'Save as PDF'",
         csvFilePrefix: "stallion-report",
         exportToast: "Exported {n} leads",
         exportToastDetail: "{range} · CSV",
@@ -87,7 +89,6 @@ export const reportsConfig = {
         emptyDescription: "Nothing was created in the selected period. Widen the date range to see earlier activity.",
         emptySourceTitle: "No sources to show",
         emptyDialsTitle: "No active reps yet",
-        rangeFootnote: "Figures cover leads created in the selected range. Rep dial totals are all-time.",
     },
 };
 /** Look up a range by its day count. Falls back to the default rather than

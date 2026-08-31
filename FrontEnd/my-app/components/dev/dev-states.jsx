@@ -19,7 +19,7 @@ export function DevSkeleton() {
 export function DevMissing() {
     return (<PageShell>
       <Panel>
-        <EmptyState icon={SearchX} title={content.missingTitle} description={content.missingDescription} action={<Link href={routes.home} className="mt-1 inline-flex h-10 items-center rounded-xl border border-hairline bg-white/[0.03] px-4 text-[0.875rem] font-medium text-ink transition-colors hover:border-hairline-strong hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60">
+        <EmptyState icon={SearchX} title={content.missingTitle} description={content.missingDescription} action={<Link href={routes.home} className="mt-1 inline-flex h-10 items-center rounded-md border border-hairline bg-white/[0.03] px-4 text-[0.875rem] font-medium text-ink transition-colors hover:border-hairline-strong hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60">
               {content.missingAction}
             </Link>}/>
       </Panel>

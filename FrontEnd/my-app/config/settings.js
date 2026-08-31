@@ -13,21 +13,33 @@
  */
 export const settingsConfig = {
     features: {
+        profile: true,
         createAccount: true,
-        quickAdd: true,
         repManagement: true,
-        stageEditor: true,
+        // Both disabled — the pipeline is real now (Lead::STAGES, fixed
+        // server-side), and there's real lead data to protect from an
+        // "undo everything" reset button meant for the old mock demo.
+        stageEditor: false,
         passwordTools: true,
-        resetDemoData: true,
+        resetDemoData: false,
     },
     generatedPasswordLength: 16,
+    roleOptions: [
+        { value: "sales", label: "Sales" },
+        { value: "dev", label: "Developer" },
+    ],
+    roleLabels: {
+        sales: "Sales Rep",
+        dev: "Developer",
+    },
     content: {
         createTitle: "Create Team Account",
-        createHint: "Adds a rep with sign-in access",
+        createHint: "Adds a sales rep or developer with sign-in access",
         nameLabel: "Full name",
         namePlaceholder: "Youssef Karim",
         emailLabel: "Work email",
         emailPlaceholder: "youssef@stallionadvertising.ma",
+        roleLabel: "Role",
         passwordLabel: "Temporary password",
         passwordPlaceholder: "Generate or type one",
         passwordHint: "They will be asked to change it on first sign-in.",
@@ -37,17 +49,10 @@ export const settingsConfig = {
         createSubmitLabel: "Create account",
         createPendingLabel: "Creating…",
         createToast: "Created an account for {name}",
-        quickAddTitle: "Quick add",
-        // The prototype left this control floating with no explanation of how it
-        // differed from the form above it. Grouped here, the difference is the
-        // whole label.
-        quickAddHint: "Add a rep for tracking only, with no sign-in.",
-        quickAddLabel: "Quick add (no login)",
-        quickAddPendingLabel: "Adding…",
-        repsTitle: "Sales Reps",
+        repsTitle: "Team Accounts",
         repsHint: "Edit, deactivate or remove",
-        repColumn: "Rep",
-        repsCaption: "Sales reps, with their sign-in email and account status",
+        repColumn: "Name",
+        repsCaption: "Sales and dev team members, with their sign-in email and account status",
         emailColumn: "Email",
         statusColumn: "Status",
         actionsColumn: "Actions",

@@ -1,4 +1,5 @@
 import { CreateAccountPanel } from "@/components/admin/settings/create-account-panel";
+import { ProfilePanel } from "@/components/admin/settings/profile-panel";
 import { RepsPanel } from "@/components/admin/settings/reps-panel";
 import { ResetDemoPanel } from "@/components/admin/settings/reset-demo-panel";
 import { StageEditor } from "@/components/admin/settings/stage-editor";
@@ -11,10 +12,15 @@ export const metadata = {
 const { features } = settingsConfig;
 export default function SettingsPage() {
     return (<PageShell>
-      {(features.createAccount || features.stageEditor) && (<div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-          {features.createAccount && <CreateAccountPanel />}
-          {features.stageEditor && <StageEditor />}
+      {features.profile && <ProfilePanel />}
+
+      {features.createAccount && features.stageEditor && (<div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+          <CreateAccountPanel />
+          <StageEditor />
         </div>)}
+
+      {features.createAccount && !features.stageEditor && <CreateAccountPanel />}
+      {!features.createAccount && features.stageEditor && <StageEditor />}
 
       {features.repManagement && <RepsPanel />}
 

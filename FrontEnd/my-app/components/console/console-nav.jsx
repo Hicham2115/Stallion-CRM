@@ -32,7 +32,7 @@ export function ConsoleNav({ role, collapsed = false, onNavigate, }) {
                     <Link href={item.href} onClick={onNavigate}
                     // aria-current tells a screen reader which page is open;
                     // the lime pill alone only says it to sighted users.
-                    aria-current={active ? "page" : undefined} title={collapsed ? item.label : undefined} className={cn("group flex h-11 items-center gap-3 rounded-xl px-3 text-[0.9375rem] transition-all duration-200", "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60 focus-visible:ring-offset-2 focus-visible:ring-offset-deck-rail", collapsed && "justify-center px-0", active
+                    aria-current={active ? "page" : undefined} title={collapsed ? item.label : undefined} className={cn("group flex h-11 items-center gap-3 rounded-md px-3 text-[0.9375rem] transition-all duration-200", "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60 focus-visible:ring-offset-2 focus-visible:ring-offset-deck-rail", collapsed && "justify-center px-0", active
                             ? "bg-brand font-semibold text-deck-void shadow-[0_10px_26px_-14px_rgb(186_252_12/0.9)]"
                             : "text-ink-soft hover:bg-white/[0.045] hover:text-ink")}>
                       <Icon aria-hidden className={cn("size-[1.15rem] shrink-0 transition-colors", active ? "text-deck-void" : "text-ink-muted group-hover:text-ink-soft")}/>

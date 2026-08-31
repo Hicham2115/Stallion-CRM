@@ -1,9 +1,12 @@
 "use client";
+import { useQuery } from "@tanstack/react-query";
 import { EmptyState } from "@/components/deck/empty-state";
 import { Panel, PanelBody, PanelHeader } from "@/components/deck/panel";
 import { adminConfig } from "@/config/admin";
 import { findStage, pipelineConfig, stageColor } from "@/config/pipeline";
+import { LIVE_STAGES, liveStageColor, liveStageCountsOf } from "@/config/pipeline-live";
 import { formatPercent } from "@/lib/format";
+import { api } from "@/lib/axios";
 import { useCrm } from "@/lib/store/crm-store";
 import { stageCountsOf } from "@/lib/store/selectors";
 const { content } = adminConfig.dashboard;
@@ -13,20 +16,44 @@ const LABEL_COLUMN = "8.5rem";
 const FIGURES_COLUMN = "5.5rem";
 // Built by hand rather than with Recharts — it's a ruled list of bars, not a
 // chart. Rows (not columns) so long stage names get real width instead of
-// truncating. Track colour comes from each stage's `tone` in
-// config/pipeline.ts, a position on a sequential ramp, so the progression
-// reads as monotonic rather than random. "Lost" renders below the rule since
-// it's a different kind of outcome, not a dimmer kind of winning.
+// truncating. Track colour comes from each stage's `tone`, a position on a
+// sequential ramp, so the progression reads as monotonic rather than random.
+// "Lost" renders below the rule since it's a different kind of outcome, not
+// a dimmer kind of winning.
+//
+// Two data sources: real (GET /api/leads internally, or a real `leads`
+// array already fetched by the caller — the rep dashboard passes its own
+// mine-scoped list this way) vs the old mock crm-store path, still used
+// wherever `live` isn't set. `live` defaults to true whenever no `leads`
+// prop is given (the admin dashboard's own case) but a caller passing real
+// leads sets it explicitly, since presence-of-a-prop alone can't tell real
+// leads from mock ones.
 export function PipelineBreakdown({
-leads,
+leads: leadsProp, live = leadsProp === undefined,
 /** Override the heading — the rep dashboard calls this "My Leads by Stage". */
 title = content.pipelineBreakdownTitle, hint = content.pipelineBreakdownHint, } = {}) {
     const { state } = useCrm();
-    const counts = stageCountsOf(leads ?? state.leads, state.stageOrder);
-    const isEmpty = counts.every((entry) => entry.count === 0);
+    const { data: fetchedLeads } = useQuery({
+        queryKey: ["leads"],
+        queryFn: async () => (await api.get("/api/leads")).data,
+        enabled: live && leadsProp === undefined,
+    });
+    const liveLeads = leadsProp ?? fetchedLeads;
+    const counts = live
+        ? liveStageCountsOf(liveLeads ?? [])
+        : stageCountsOf(leadsProp, state.stageOrder);
+    const colorOf = (id) => live
+        ? liveStageColor(LIVE_STAGES.find((s) => s.id === id))
+        : (() => {
+            const stage = findStage(pipelineConfig.stages, id);
+            return stage ? stageColor(stage) : "var(--stage-neutral)";
+        })();
+    const isEmpty = live ? !liveLeads || liveLeads.length === 0 : counts.every((entry) => entry.count === 0);
     // "Lost" is separated out rather than filtered away — it still gets a
     // row, just below the rule.
-    const lostId = pipelineConfig.stages.find((stage) => stage.isLost)?.id;
+    const lostId = live
+        ? LIVE_STAGES.find((s) => s.isLost)?.id
+        : pipelineConfig.stages.find((stage) => stage.isLost)?.id;
     const progression = counts.filter((entry) => entry.id !== lostId);
     const lost = counts.find((entry) => entry.id === lostId);
     // Scaled against the fullest progression stage (not the grand total) so
@@ -48,7 +75,6 @@ title = content.pipelineBreakdownTitle, hint = content.pipelineBreakdownHint, } 
 
             <ul className="relative">
               {progression.map((entry) => {
-                const stage = findStage(pipelineConfig.stages, entry.id);
                 return (<li key={entry.id} className="group flex items-center gap-3 py-[0.4375rem]">
                     <p className="hidden shrink-0 truncate font-mono text-[0.625rem] uppercase tracking-[0.14em] text-ink-muted transition-colors group-hover:text-ink-soft sm:block" style={{ width: LABEL_COLUMN }} title={entry.label}>
                       {entry.label}
@@ -64,9 +90,7 @@ title = content.pipelineBreakdownTitle, hint = content.pipelineBreakdownHint, } 
                         width: `${Math.max((entry.count / progressionMax) * 100,
                         // Floor so one lead is still a visible mark, not a sliver.
                         entry.count > 0 ? 2 : 0)}%`,
-                        backgroundColor: stage
-                            ? stageColor(stage)
-                            : "var(--stage-neutral)",
+                        backgroundColor: colorOf(entry.id),
                     }}/>
                       </div>
                     </div>

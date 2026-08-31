@@ -16,7 +16,9 @@
 export const boardConfig = {
     features: {
         dragAndDrop: true,
-        funnelView: true,
+        // Disabled — still on the mock crm-store, not real data. Flip back
+        // to true once it's wired to real conversion-funnel data.
+        funnelView: false,
         staleMarkers: true,
         dropPreview: true,
         undoMove: true,

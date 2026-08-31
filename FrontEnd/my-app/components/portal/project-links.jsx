@@ -1,13 +1,12 @@
 import Link from "next/link";
-import { ArrowUpRight, Clock, Globe, Lock, Eye, } from "lucide-react";
+import { ArrowUpRight, Clock, Eye, } from "lucide-react";
 import { Panel, PanelBody, PanelHeader } from "@/components/deck/panel";
 import { portalConfig } from "@/config/portal";
 import { formatDaysAgo, template } from "@/lib/format";
 import { cn } from "@/lib/utils";
 const { content, features, routes } = portalConfig;
-// "Preview" and "live" here are internally staging/production — neither word
-// is shown to the client. Whichever exists (live once launched, preview
-// until then) gets the single lime accent per DESIGN.md's one-lime-answer rule.
+// Live site link removed at the client's request — preview is the only link
+// shown here now, so it's always the lime "primary" action.
 export function ProjectLinks({ lead,
 // The Previews screen sets this false since it already renders the gallery
 // directly below this panel.
@@ -15,7 +14,6 @@ showGalleryLink = true, }) {
     // Newest first, so the freshest preview is the one linked rather than a
     // stale URL.
     const preview = lead.previews[0];
-    const livePrimary = Boolean(lead.liveUrl);
     return (<Panel>
       <PanelHeader title={content.links.title} hint={content.links.hint} actions={
         // Only offered when there's more than the one preview already linked.
@@ -26,39 +24,31 @@ showGalleryLink = true, }) {
             </Link>) : undefined}/>
 
       <PanelBody>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <LinkCard icon={Eye} badge={content.links.previewBadge} badgeTone="neutral" title={content.links.previewTitle} body={content.links.previewBody} href={preview?.url ?? null} action={content.links.previewAction} primary={!livePrimary} meta={preview
+        <LinkCard icon={Eye} badge={content.links.previewBadge} badgeTone="neutral" title={content.links.previewTitle} body={content.links.previewBody} href={preview?.url ?? null} action={content.links.previewAction} primary meta={preview
             ? template(content.links.previewUpdated, {
                 when: formatDaysAgo(preview.updatedDaysAgo).toLowerCase(),
             })
             : undefined} note={preview?.url ? content.links.privacyNote : undefined} emptyIcon={Clock} emptyTitle={content.links.previewEmptyTitle} emptyBody={content.links.previewEmptyBody}/>
-
-          <LinkCard icon={Globe} badge={content.links.liveBadge} badgeTone="good" title={content.links.liveTitle} body={content.links.liveBody} href={lead.liveUrl} action={content.links.liveAction} primary={livePrimary} emptyIcon={Lock} emptyTitle={content.links.liveEmptyTitle} emptyBody={content.links.liveEmptyBody}/>
-        </div>
       </PanelBody>
     </Panel>);
 }
-// `good` is used only for "Live" since being live is a real state; "Work in
-// progress" stays neutral rather than warning-toned since it's expected, not
-// wrong.
 const BADGE_TONE = {
     neutral: "border-hairline bg-white/[0.04] text-ink-muted",
-    good: "border-status-good/28 bg-status-good/10 text-status-good",
 };
 function LinkCard({ icon: Icon, badge, badgeTone, title, body, href, action, primary, meta, note, emptyIcon: EmptyIcon, emptyTitle, emptyBody, }) {
     const available = Boolean(href);
-    return (<div className={cn("flex flex-col rounded-xl border p-4 sm:p-5",
+    return (<div className={cn("flex flex-col rounded-md border p-4 sm:p-5",
         // Recedes rather than disappears, so a single-card row doesn't hide
         // that a live site is coming.
         available
             ? "border-hairline bg-white/[0.02]"
             : "border-hairline/60 bg-white/[0.012]")}>
       <div className="flex items-center justify-between gap-3">
-        <span className={cn("grid size-9 shrink-0 place-items-center rounded-lg border border-hairline bg-white/[0.03]", available ? "text-ink-soft" : "text-ink-muted")}>
+        <span className={cn("grid size-9 shrink-0 place-items-center rounded-md border border-hairline bg-white/[0.03]", available ? "text-ink-soft" : "text-ink-muted")}>
           <Icon aria-hidden className="size-[1.0625rem]"/>
         </span>
 
-        <span className={cn("inline-flex items-center rounded-full border px-2.5 py-1 font-mono text-[0.625rem] uppercase tracking-[0.16em]", BADGE_TONE[badgeTone])}>
+        <span className={cn("inline-flex items-center rounded-md border px-2.5 py-1 font-mono text-[0.625rem] uppercase tracking-[0.16em]", BADGE_TONE[badgeTone])}>
           {badge}
         </span>
       </div>
@@ -80,7 +70,7 @@ function LinkCard({ icon: Icon, badge, badgeTone, title, body, href, action, pri
             {/* Real anchor, not a button+onClick, so middle-click / open-in-new-tab
                 / copy-link work. rel="noopener noreferrer" is required with
                 target="_blank" to stop the opened page reaching back via window.opener. */}
-            <a href={href} target="_blank" rel="noopener noreferrer" className={cn("group inline-flex h-10 items-center gap-2 rounded-xl px-4 text-[0.875rem] font-semibold transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60 focus-visible:ring-offset-2 focus-visible:ring-offset-deck-surface", primary
+            <a href={href} target="_blank" rel="noopener noreferrer" className={cn("group inline-flex h-10 items-center gap-2 rounded-md px-4 text-[0.875rem] font-semibold transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60 focus-visible:ring-offset-2 focus-visible:ring-offset-deck-surface", primary
                 ? "bg-brand text-deck-void shadow-[0_10px_26px_-14px_rgb(186_252_12/0.9)] hover:brightness-[1.06]"
                 : "border border-hairline bg-white/[0.03] text-ink hover:border-hairline-strong hover:bg-white/[0.06]")}>
               {action}

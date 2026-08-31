@@ -106,7 +106,6 @@ export function LeadIntakeForm({ onSubmitted }) {
       const payload = { ...value, attribution };
       const parsed = leadSchema.safeParse(payload);
       if (!parsed.success) return;
-      console.log("Submitting lead:", parsed.data, briefFile);
 
       await submitLead.mutateAsync(
         { values: parsed.data, briefFile },
@@ -132,7 +131,7 @@ export function LeadIntakeForm({ onSubmitted }) {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex min-w-0 flex-col gap-6">
       <ProgressIndicator steps={STEPS} currentStep={stepIndex} />
 
       <form
@@ -141,7 +140,7 @@ export function LeadIntakeForm({ onSubmitted }) {
           e.stopPropagation();
           goNext();
         }}
-        className="flex flex-col gap-6"
+        className="flex min-w-0 flex-col gap-6"
       >
         <StepComponent
           form={form}

@@ -52,7 +52,7 @@ export function StageEditor() {
       <PanelHeader title={content.stagesTitle} hint={content.stagesHint}/>
 
       <PanelBody>
-        <p className="mb-5 flex items-start gap-2.5 rounded-xl border border-hairline bg-white/[0.02] px-3.5 py-3 text-[0.8125rem] leading-relaxed text-ink-muted">
+        <p className="mb-5 flex items-start gap-2.5 rounded-md border border-hairline bg-white/[0.02] px-3.5 py-3 text-[0.8125rem] leading-relaxed text-ink-muted">
           <Info aria-hidden className="mt-0.5 size-4 shrink-0 text-ink-faint"/>
           {content.stagesReassurance}
         </p>
@@ -63,7 +63,7 @@ export function StageEditor() {
             const editing = editingId === stage.id;
             const first = index === 0;
             const last = index === stages.length - 1;
-            return (<li key={stage.id} className="flex items-center gap-3 rounded-xl border border-hairline bg-white/[0.02] px-3.5 py-2.5">
+            return (<li key={stage.id} className="flex items-center gap-3 rounded-md border border-hairline bg-white/[0.02] px-3.5 py-2.5">
                 <StatusDot color={known ? stageColor(known) : "var(--stage-neutral)"}/>
 
                 {editing ? (<input autoFocus value={draftLabel} onChange={(event) => setDraftLabel(event.target.value)} onBlur={() => void commitRename(stage.id, stage.label)} onKeyDown={(event) => {
@@ -72,7 +72,7 @@ export function StageEditor() {
                         }
                         if (event.key === "Escape")
                             setEditingId(null);
-                    }} aria-label={content.stageNameLabel} className="deck-input h-8 min-w-0 flex-1 rounded-lg border border-brand/45 bg-white/[0.04] px-2.5 text-[0.875rem] text-ink caret-brand outline-none focus:ring-2 focus:ring-brand/25"/>) : (<button type="button" onClick={() => {
+                    }} aria-label={content.stageNameLabel} className="deck-input h-8 min-w-0 flex-1 rounded-md border border-brand/45 bg-white/[0.04] px-2.5 text-[0.875rem] text-ink caret-brand outline-none focus:ring-2 focus:ring-brand/25"/>) : (<button type="button" onClick={() => {
                         setEditingId(stage.id);
                         setDraftLabel(stage.label);
                     }} className="min-w-0 flex-1 truncate rounded text-left text-[0.875rem] text-ink-soft transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60">

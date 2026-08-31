@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 // dialogs, the card being dragged.
 export function Panel(_a) {
     var { className, children, ticks = false } = _a, props = __rest(_a, ["className", "children", "ticks"]);
-    return (<section className={cn("deck-inset relative rounded-2xl border border-hairline bg-deck-surface", className)} {...props}>
+    return (<section className={cn("deck-inset relative rounded-md border border-hairline bg-deck-surface", className)} {...props}>
       {ticks && (
         // Smaller and fainter than the login's marks. At full size on a panel
         // this close to real controls, a crosshair starts reading as a "+"

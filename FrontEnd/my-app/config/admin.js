@@ -13,12 +13,11 @@
  *    - Translate a screen ............. swap the `content` objects
  * ============================================================================
  */
-import { PhoneCall, Target, TrendingUp, Users, } from "lucide-react";
+import { CalendarClock, PhoneCall, TrendingUp, Users, } from "lucide-react";
 export const adminConfig = {
     routes: {
         home: "/admin",
         clients: "/admin/clients",
-        client: (leadId) => `/admin/clients/${leadId}`,
         pipeline: "/admin/pipeline",
         chat: "/admin/chat",
         reports: "/admin/reports",
@@ -32,7 +31,6 @@ export const adminConfig = {
             clusterRuler: true,
             pipelineBreakdown: true,
             clientStatus: true,
-            stageConversion: true,
             repLeaderboard: true,
         },
         kpis: [
@@ -61,13 +59,12 @@ export const adminConfig = {
                 target: 100,
             },
             {
-                key: "avgDialsPerRep",
-                label: "Avg Dials / Rep",
-                icon: Target,
+                key: "needsSecondMeeting",
+                label: "Needs Second Meeting",
+                icon: CalendarClock,
                 format: "number",
-                // The prototype left this card's lower half empty. A seven-day trend
-                // fills it with something worth knowing rather than padding.
-                foot: "sparkline",
+                foot: "caption",
+                caption: "not yet scheduled",
             },
         ],
         content: {
@@ -76,16 +73,11 @@ export const adminConfig = {
             pipelineBreakdownHint: "Leads by stage",
             clientStatusTitle: "Client Status",
             clientStatusHint: "Share of all leads",
-            /** Used instead of clientStatusHint when features.stageConversion is on.
-             *  Kept short — a mono uppercase micro-label that wraps to two lines
-             *  stops being a label and starts being a paragraph. */
-            clientStatusConversionHint: "Volume · stage conversion",
             leaderboardTitle: "Rep Leaderboard",
             leaderboardHint: "Ranked by dials",
             repColumnLabel: "Rep",
             leaderboardRankedBy: "Ranked by {metric}",
             leaderboardCaption: "Sales reps ranked by {metric}",
-            conversionTooltip: "Share of the previous stage that reached this one",
             emptyLeaderboard: "No reps yet. Add one from Settings.",
             kpiClusterLabel: "Key performance indicators",
             emptyPipeline: "No leads yet.",

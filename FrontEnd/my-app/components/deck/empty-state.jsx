@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 // no data, a too-narrow filter, or a failed load, and offers the next action.
 export function EmptyState({ icon: Icon, title, description, action, className, }) {
     return (<div className={cn("flex flex-col items-center justify-center gap-3 px-6 py-14 text-center", className)}>
-      {Icon && (<span className="grid size-10 place-items-center rounded-xl border border-hairline bg-white/[0.03]">
+      {Icon && (<span className="grid size-10 place-items-center rounded-md border border-hairline bg-white/[0.03]">
           <Icon aria-hidden className="size-4 text-ink-muted"/>
         </span>)}
       <div>
