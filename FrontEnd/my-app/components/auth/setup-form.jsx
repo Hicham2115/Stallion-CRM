@@ -76,7 +76,6 @@ export function SetupForm() {
   const form = useForm({
     defaultValues: { name: "", email: "", password: "", confirmPassword: "" },
     onSubmit: async ({ value }) => {
-      if (!confirmWipe) return;
       const parsed = setupSchema.safeParse(value);
       if (!parsed.success) return;
       await createAccount.mutateAsync(parsed.data);
