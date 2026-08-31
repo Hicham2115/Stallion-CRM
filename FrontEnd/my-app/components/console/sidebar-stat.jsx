@@ -17,7 +17,7 @@ export function SidebarStat({ className }) {
     const value = own
         ? selectRepKpis(state, session.repId).dialsToday
         : selectKpis(state).avgDialsPerRep;
-    return (<div className={cn("deck-inset relative overflow-hidden rounded-xl border border-hairline bg-white/[0.02] px-4 pb-3 pt-3.5", className)}>
+    return (<div className={cn("deck-inset relative overflow-hidden rounded-md border border-hairline bg-white/[0.02] px-4 pb-3 pt-3.5", className)}>
       <p className="font-mono text-[0.625rem] uppercase tracking-[0.2em] text-ink-muted">
         {own
             ? consoleConfig.content.repStatLabel

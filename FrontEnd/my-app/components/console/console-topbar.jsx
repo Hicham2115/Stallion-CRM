@@ -113,13 +113,13 @@ export function ConsoleTopbar() {
           <Popover>
             <PopoverTrigger
               aria-label={consoleConfig.content.notificationsLabel}
-              className="relative grid size-10 place-items-center rounded-xl border border-hairline bg-white/[0.03] text-ink-soft transition-colors hover:bg-white/[0.06] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60"
+              className="relative grid size-10 place-items-center rounded-md border border-hairline bg-white/[0.03] text-ink-soft transition-colors hover:bg-white/[0.06] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60"
             >
               <Bell aria-hidden className="size-[1.15rem]" />
               {unreadCount > 0 && (
                 <span
                   aria-hidden
-                  className="absolute right-1.5 top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-brand px-1 font-mono text-[0.625rem] font-semibold text-deck-void"
+                  className="absolute right-1.5 top-1.5 grid h-4 min-w-4 place-items-center rounded-md bg-brand px-1 font-mono text-[0.625rem] font-semibold text-deck-void"
                 >
                   {unreadCount > 9 ? "9+" : unreadCount}
                 </span>
@@ -150,7 +150,7 @@ function ProfileBlock({ user }) {
       <div className="hidden leading-tight sm:block">
         <p className="flex items-center gap-2 text-[0.875rem] font-medium text-ink">
           {user.name}
-          <span className="rounded-full bg-brand/15 px-2 py-0.5 font-mono text-[0.625rem] uppercase tracking-[0.16em] text-brand">
+          <span className="rounded-md bg-brand/15 px-2 py-0.5 font-mono text-[0.625rem] uppercase tracking-[0.16em] text-brand">
             {user.roleBadge}
           </span>
         </p>
@@ -167,7 +167,7 @@ function ProfileBlock({ user }) {
     <Link
       href={adminConfig.routes.settings}
       aria-label={consoleConfig.content.userMenuLabel}
-      className="flex items-center gap-2.5 rounded-xl transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60"
+      className="flex items-center gap-2.5 rounded-md transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60"
     >
       {content}
     </Link>

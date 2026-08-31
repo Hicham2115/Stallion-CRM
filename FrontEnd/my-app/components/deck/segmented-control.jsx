@@ -12,7 +12,7 @@ const TONES = {
 export function SegmentedControl({ value, onValueChange, options,
 /** Accessible name for the group, e.g. "Board view". */
 label, tone = "accent", className, }) {
-    return (<div role="radiogroup" aria-label={label} className={cn("inline-flex items-center gap-1 rounded-xl border border-hairline bg-white/[0.03] p-1", className)}>
+    return (<div role="radiogroup" aria-label={label} className={cn("inline-flex items-center gap-1 rounded-md border border-hairline bg-white/[0.03] p-1", className)}>
       {options.map((option) => {
             const active = option.value === value;
             return (<button key={option.value} type="button" role="radio" aria-checked={active}
@@ -31,7 +31,7 @@ label, tone = "accent", className, }) {
                     const target = group?.children[next];
                     if (target instanceof HTMLElement)
                         target.focus();
-                }} className={cn("inline-flex h-8 items-center gap-1.5 rounded-lg px-3 text-[0.8125rem] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60", active
+                }} className={cn("inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-[0.8125rem] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60", active
                     ? TONES[tone]
                     : "text-ink-muted hover:bg-white/[0.05] hover:text-ink-soft")}>
             {option.icon}

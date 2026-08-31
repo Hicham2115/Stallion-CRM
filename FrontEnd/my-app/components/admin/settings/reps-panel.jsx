@@ -24,7 +24,7 @@ const COLUMNS = [
     { key: "status", label: content.statusColumn, width: "w-[8rem]" },
     { key: "actions", label: content.actionsColumn, srOnly: true, width: "w-[7rem]" },
 ];
-// Real accounts (GET /api/users?role=sales) — Edit stays inline (common,
+// Real accounts (GET /api/users?role=sales,dev) — Edit stays inline (common,
 // harmless); Deactivate/Delete move into a row menu, since Delete sitting
 // one mis-click from Deactivate — an irreversible action beside a
 // reversible one, styled identically — was the prototype's risk. Inactive
@@ -41,15 +41,15 @@ export function RepsPanel() {
         isError,
         error,
     } = useQuery({
-        queryKey: ["users", "sales"],
-        queryFn: async () => (await api.get("/api/users", { params: { role: "sales" } })).data,
+        queryKey: ["users", "team"],
+        queryFn: async () => (await api.get("/api/users", { params: { role: "sales,dev" } })).data,
     });
 
     useEffect(() => {
         if (isError) toast.error(getErrorMessage(error));
     }, [isError, error]);
 
-    const invalidate = () => queryClient.invalidateQueries({ queryKey: ["users", "sales"] });
+    const invalidate = () => queryClient.invalidateQueries({ queryKey: ["users", "team"] });
 
     const rename = useMutation({
         mutationFn: async ({ id, name }) => (await api.patch(`/api/users/${id}`, { name })).data,
@@ -113,12 +113,12 @@ export function RepsPanel() {
                                 saveEdit(rep);
                             if (event.key === "Escape")
                                 setEditingId(null);
-                        }} aria-label={`${content.editLabel} ${rep.name}`} className="deck-input h-8 min-w-0 flex-1 rounded-lg border border-brand/45 bg-white/[0.04] px-2.5 text-[0.875rem] text-ink caret-brand outline-none focus:ring-2 focus:ring-brand/25"/>) : (<span className="min-w-0">
+                        }} aria-label={`${content.editLabel} ${rep.name}`} className="deck-input h-8 min-w-0 flex-1 rounded-md border border-brand/45 bg-white/[0.04] px-2.5 text-[0.875rem] text-ink caret-brand outline-none focus:ring-2 focus:ring-brand/25"/>) : (<span className="min-w-0">
                           <span className="block truncate text-[0.875rem] font-medium text-ink">
                             {rep.name}
                           </span>
                           <span className="block truncate text-[0.75rem] text-ink-muted">
-                            Sales Rep
+                            {settingsConfig.roleLabels[rep.role] ?? rep.role}
                           </span>
                         </span>)}
                     </div>

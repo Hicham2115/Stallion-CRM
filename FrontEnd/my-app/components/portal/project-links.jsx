@@ -37,18 +37,18 @@ const BADGE_TONE = {
 };
 function LinkCard({ icon: Icon, badge, badgeTone, title, body, href, action, primary, meta, note, emptyIcon: EmptyIcon, emptyTitle, emptyBody, }) {
     const available = Boolean(href);
-    return (<div className={cn("flex flex-col rounded-xl border p-4 sm:p-5",
+    return (<div className={cn("flex flex-col rounded-md border p-4 sm:p-5",
         // Recedes rather than disappears, so a single-card row doesn't hide
         // that a live site is coming.
         available
             ? "border-hairline bg-white/[0.02]"
             : "border-hairline/60 bg-white/[0.012]")}>
       <div className="flex items-center justify-between gap-3">
-        <span className={cn("grid size-9 shrink-0 place-items-center rounded-lg border border-hairline bg-white/[0.03]", available ? "text-ink-soft" : "text-ink-muted")}>
+        <span className={cn("grid size-9 shrink-0 place-items-center rounded-md border border-hairline bg-white/[0.03]", available ? "text-ink-soft" : "text-ink-muted")}>
           <Icon aria-hidden className="size-[1.0625rem]"/>
         </span>
 
-        <span className={cn("inline-flex items-center rounded-full border px-2.5 py-1 font-mono text-[0.625rem] uppercase tracking-[0.16em]", BADGE_TONE[badgeTone])}>
+        <span className={cn("inline-flex items-center rounded-md border px-2.5 py-1 font-mono text-[0.625rem] uppercase tracking-[0.16em]", BADGE_TONE[badgeTone])}>
           {badge}
         </span>
       </div>
@@ -70,7 +70,7 @@ function LinkCard({ icon: Icon, badge, badgeTone, title, body, href, action, pri
             {/* Real anchor, not a button+onClick, so middle-click / open-in-new-tab
                 / copy-link work. rel="noopener noreferrer" is required with
                 target="_blank" to stop the opened page reaching back via window.opener. */}
-            <a href={href} target="_blank" rel="noopener noreferrer" className={cn("group inline-flex h-10 items-center gap-2 rounded-xl px-4 text-[0.875rem] font-semibold transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60 focus-visible:ring-offset-2 focus-visible:ring-offset-deck-surface", primary
+            <a href={href} target="_blank" rel="noopener noreferrer" className={cn("group inline-flex h-10 items-center gap-2 rounded-md px-4 text-[0.875rem] font-semibold transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60 focus-visible:ring-offset-2 focus-visible:ring-offset-deck-surface", primary
                 ? "bg-brand text-deck-void shadow-[0_10px_26px_-14px_rgb(186_252_12/0.9)] hover:brightness-[1.06]"
                 : "border border-hairline bg-white/[0.03] text-ink hover:border-hairline-strong hover:bg-white/[0.06]")}>
               {action}

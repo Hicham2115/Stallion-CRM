@@ -40,7 +40,7 @@ export function LiveLeadCard({
           : { transform: CSS.Translate.toString(transform), transition }
       }
       className={cn(
-        "group relative rounded-xl border border-hairline bg-white/[0.03] p-3.5 transition-colors",
+        "group relative rounded-md border border-hairline bg-white/[0.03] p-3.5 transition-colors",
         !dragging && !overlay && "hover:bg-white/[0.055]",
         dragging && "opacity-35",
         overlay && "deck-lift cursor-grabbing border-brand/40 bg-deck-card",
@@ -77,7 +77,7 @@ export function LiveLeadCard({
             {...attributes}
             {...listeners}
             aria-label={template(content.dragHandleLabel, { name: lead.full_name })}
-            className="-mr-1 -mt-1 grid size-7 shrink-0 cursor-grab touch-none place-items-center rounded-lg text-ink-muted transition-colors hover:bg-white/[0.06] hover:text-ink-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60 active:cursor-grabbing"
+            className="-mr-1 -mt-1 grid size-7 shrink-0 cursor-grab touch-none place-items-center rounded-md text-ink-muted transition-colors hover:bg-white/[0.06] hover:text-ink-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60 active:cursor-grabbing"
           >
             <GripVertical aria-hidden className="size-3.5" />
           </button>
@@ -88,7 +88,7 @@ export function LiveLeadCard({
         <span className="flex items-center gap-1.5">
           <SourceBadge source={source} className="px-2 py-0 text-[0.6875rem]" />
           {lead.track && (
-            <span className="rounded-full border border-hairline bg-white/[0.03] px-2 py-0.5 text-[0.6875rem] text-ink-muted">
+            <span className="rounded-md border border-hairline bg-white/[0.03] px-2 py-0.5 text-[0.6875rem] text-ink-muted">
               {lead.track === "low_ticket" ? "Low ticket" : "High ticket"}
             </span>
           )}

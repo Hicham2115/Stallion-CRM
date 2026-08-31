@@ -67,7 +67,7 @@ function Pill({ children, className }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center whitespace-nowrap rounded-full border border-hairline px-2.5 py-0.5 text-[0.75rem] font-medium",
+        "inline-flex items-center whitespace-nowrap rounded-md border border-hairline px-2.5 py-0.5 text-[0.75rem] font-medium",
         className,
       )}
     >
@@ -96,7 +96,7 @@ function Field({ icon: Icon, label, value }) {
 
 function Section({ title, children }) {
   return (
-    <div className="min-w-0 rounded-xl border border-hairline bg-white/[0.02] p-4">
+    <div className="min-w-0 rounded-md border border-hairline bg-white/[0.02] p-4">
       <p className="mb-3 font-mono text-[0.625rem] uppercase tracking-[0.16em] text-ink-muted">
         {title}
       </p>
@@ -118,7 +118,7 @@ function EditRow({ label, children }) {
 
 function SwitchRow({ label, checked, onCheckedChange }) {
   return (
-    <label className="flex items-center justify-between gap-2 rounded-lg border border-hairline bg-white/[0.02] px-3 py-2.5">
+    <label className="flex items-center justify-between gap-2 rounded-md border border-hairline bg-white/[0.02] px-3 py-2.5">
       <span className="text-[0.8125rem] text-ink-soft">{label}</span>
       <Switch checked={checked === true} onCheckedChange={onCheckedChange} size="sm" />
     </label>
@@ -396,7 +396,7 @@ function LeadDetailsContent({ lead }) {
                 href={`${backendUrl}/storage/${lead.brief_file_path}`}
                 target="_blank"
                 rel="noreferrer"
-                className="flex items-center gap-2.5 rounded-xl border border-hairline bg-white/[0.02] p-4 text-[0.8125rem] font-medium text-ink-soft transition-colors hover:border-brand/40 hover:bg-brand/[0.06] hover:text-brand"
+                className="flex items-center gap-2.5 rounded-md border border-hairline bg-white/[0.02] p-4 text-[0.8125rem] font-medium text-ink-soft transition-colors hover:border-brand/40 hover:bg-brand/[0.06] hover:text-brand"
               >
                 <FileText aria-hidden className="size-4 shrink-0" />
                 View attached brief

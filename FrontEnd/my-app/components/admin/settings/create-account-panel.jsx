@@ -11,6 +11,13 @@ import {
 } from "@/components/deck/field";
 import { Panel, PanelBody, PanelHeader } from "@/components/deck/panel";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { clientsConfig } from "@/config/clients";
 import { settingsConfig } from "@/config/settings";
 import { template } from "@/lib/format";
@@ -30,14 +37,16 @@ function generatePassword(length) {
   crypto.getRandomValues(bytes);
   return Array.from(bytes, (byte) => alphabet[byte % alphabet.length]).join("");
 }
-// POST /api/users — a real sign-in account (role fixed to "sales" server
-// side, see UserController::store). Password field is masked by default
-// with a deliberate show toggle and generator, rather than the plain
-// visible text input the prototype used.
+// POST /api/users — a real sign-in account. Role is one of
+// UserController::MANAGEABLE_ROLES (sales/dev) — admin is intentionally
+// never offered here, only via the one-time /setup flow. Password field is
+// masked by default with a deliberate show toggle and generator, rather
+// than the plain visible text input the prototype used.
 export function CreateAccountPanel() {
   const queryClient = useQueryClient();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [role, setRole] = useState(settingsConfig.roleOptions[0].value);
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
@@ -45,10 +54,12 @@ export function CreateAccountPanel() {
   const create = useMutation({
     mutationFn: async (payload) => (await api.post("/api/users", payload)).data,
     onSuccess: (user) => {
-      queryClient.invalidateQueries({ queryKey: ["users", "sales"] });
+      // Team Accounts (reps-panel.jsx) lists both roles under one query key.
+      queryClient.invalidateQueries({ queryKey: ["users", "team"] });
       toast.success(template(content.createToast, { name: user.name }));
       setName("");
       setEmail("");
+      setRole(settingsConfig.roleOptions[0].value);
       setPassword("");
       setShowPassword(false);
       setErrors({});
@@ -91,7 +102,7 @@ export function CreateAccountPanel() {
       focusFirst(next);
       return;
     }
-    create.mutate({ name: name.trim(), email: email.trim(), password });
+    create.mutate({ name: name.trim(), email: email.trim(), password, role });
   }
   return (
     <Panel className="flex h-full flex-col">
@@ -156,6 +167,24 @@ export function CreateAccountPanel() {
           </div>
 
           <div>
+            <label htmlFor="rep-role" className={fieldLabel}>
+              {content.roleLabel}
+            </label>
+            <Select value={role} onValueChange={setRole}>
+              <SelectTrigger id="rep-role" className={cn(inputBase, "mt-2 w-full")}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {settingsConfig.roleOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
             <label htmlFor="rep-password" className={fieldLabel}>
               {content.passwordLabel}
             </label>
@@ -191,7 +220,7 @@ export function CreateAccountPanel() {
                         : content.showPasswordLabel
                     }
                     aria-pressed={showPassword}
-                    className="absolute right-2 top-1/2 grid size-8 -translate-y-1/2 place-items-center rounded-lg text-ink-muted transition hover:bg-white/[0.06] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50"
+                    className="absolute right-2 top-1/2 grid size-8 -translate-y-1/2 place-items-center rounded-md text-ink-muted transition hover:bg-white/[0.06] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50"
                   >
                     {showPassword ? (
                       <EyeOff aria-hidden className="size-4" />
@@ -207,7 +236,7 @@ export function CreateAccountPanel() {
                   type="button"
                   variant="outline"
                   size="lg"
-                  className="h-11 shrink-0 rounded-xl"
+                  className="h-11 shrink-0 rounded-md"
                   onClick={() => {
                     setPassword(
                       generatePassword(settingsConfig.generatedPasswordLength),
@@ -245,7 +274,7 @@ export function CreateAccountPanel() {
               type="submit"
               size="lg"
               disabled={create.isPending}
-              className="h-11 rounded-xl font-semibold"
+              className="h-11 rounded-md font-semibold"
             >
               {create.isPending ? (
                 <>

@@ -113,11 +113,11 @@ export function PreviewManager({ lead }) {
         {features.previewUploads && (<DropZone compact={!empty} active={dragActive} reading={reading} disabled={atLimit} inputRef={fileRef} onFile={(file) => void takeFile(file)} onDragStateChange={setDragActive} onDrop={handleDrop}/>)}
 
         <form onSubmit={handleAdd} className="mt-4 flex flex-wrap gap-2.5">
-          {staged && (<span className="flex h-11 shrink-0 items-center gap-2 rounded-xl border border-brand/35 bg-brand/[0.07] py-1 pl-1 pr-2.5">
+          {staged && (<span className="flex h-11 shrink-0 items-center gap-2 rounded-md border border-brand/35 bg-brand/[0.07] py-1 pl-1 pr-2.5">
               {/* eslint-disable-next-line @next/next/no-img-element -- a data
                 URL produced in this browser; there is no host for next/image
                 to be configured with. See lib/image-upload.ts. */}
-              <img src={staged.dataUrl} alt="" className="h-9 w-14 rounded-lg object-cover"/>
+              <img src={staged.dataUrl} alt="" className="h-9 w-14 rounded-md object-cover"/>
               <span className="deck-nums font-mono text-[0.625rem] uppercase tracking-[0.14em] text-ink-muted">
                 {formatBytes(staged.bytes)}
               </span>
@@ -159,14 +159,14 @@ function DropZone({ compact, active, reading, disabled, inputRef, onFile, onDrag
             event.preventDefault();
             if (!disabled)
                 onDragStateChange(true);
-        }} onDragLeave={() => onDragStateChange(false)} onDrop={disabled ? (event) => event.preventDefault() : onDrop} className={cn("mt-5 flex cursor-pointer items-center justify-center gap-3 rounded-xl border border-dashed transition-colors", compact ? "px-4 py-4" : "flex-col px-6 py-14", active
+        }} onDragLeave={() => onDragStateChange(false)} onDrop={disabled ? (event) => event.preventDefault() : onDrop} className={cn("mt-5 flex cursor-pointer items-center justify-center gap-3 rounded-md border border-dashed transition-colors", compact ? "px-4 py-4" : "flex-col px-6 py-14", active
             ? "border-brand/60 bg-brand/[0.07]"
             : "border-hairline-strong bg-white/[0.015] hover:border-brand/35 hover:bg-white/[0.03]", disabled && "cursor-not-allowed opacity-55 hover:border-hairline-strong hover:bg-white/[0.015]",
         // Ring lands on the label since the file input inside is visually hidden.
         "focus-within:outline-none focus-within:ring-2 focus-within:ring-brand/60 focus-within:ring-offset-2 focus-within:ring-offset-deck-surface")}>
       <input ref={inputRef} type="file" accept={uploads.accept} disabled={disabled} onChange={(event) => onFile(event.target.files?.[0])} className="sr-only"/>
 
-      <span className={cn("grid shrink-0 place-items-center rounded-xl border border-hairline bg-white/[0.03]", compact ? "size-9" : "size-11")}>
+      <span className={cn("grid shrink-0 place-items-center rounded-md border border-hairline bg-white/[0.03]", compact ? "size-9" : "size-11")}>
         {reading ? (<LoaderCircle aria-hidden className="deck-spin size-4 text-brand"/>) : (<ImagePlus aria-hidden className="size-[1.15rem] text-ink-muted"/>)}
       </span>
 
@@ -189,7 +189,7 @@ function DropZone({ compact, active, reading, disabled, inputRef, onFile, onDrag
     </label>);
 }
 function PreviewTile({ preview, onRemove, }) {
-    return (<li className="group relative flex flex-col overflow-hidden rounded-xl border border-hairline bg-white/[0.02]">
+    return (<li className="group relative flex flex-col overflow-hidden rounded-md border border-hairline bg-white/[0.02]">
       {preview.imageUrl ? (
         // Data URL produced in this browser — no host for next/image to be
         // configured with. See lib/image-upload.ts.

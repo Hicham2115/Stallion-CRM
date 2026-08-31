@@ -68,7 +68,7 @@ export function RepClientsView() {
           {formatNumber(leads.length)} leads
         </p>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
           <ClientSearch
             query={query}
             onQueryChange={setQuery}

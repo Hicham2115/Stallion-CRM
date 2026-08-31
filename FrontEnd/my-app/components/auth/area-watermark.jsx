@@ -34,7 +34,7 @@ function HorizonReadout({ active, payload }) {
     const reading = payload[0]?.value;
     if (reading === undefined)
         return null;
-    return (<div className="rounded-lg border border-hairline bg-deck-card/95 px-3 py-2 shadow-[0_18px_44px_-18px_rgb(0_0_0/0.9)] backdrop-blur-md">
+    return (<div className="rounded-md border border-hairline bg-deck-card/95 px-3 py-2 shadow-[0_18px_44px_-18px_rgb(0_0_0/0.9)] backdrop-blur-md">
       <p className="font-mono text-[0.625rem] uppercase tracking-[0.18em] text-ink-muted">
         {area.readoutLabel}
       </p>

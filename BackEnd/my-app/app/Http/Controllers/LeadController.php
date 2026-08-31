@@ -214,18 +214,46 @@ class LeadController extends Controller
     {
         $user = $request->user();
 
+        $request->merge([
+            'is_decision_maker' => $request->has('is_decision_maker')
+                ? filter_var($request->input('is_decision_maker'), FILTER_VALIDATE_BOOLEAN)
+                : null,
+        ]);
+
+        // Same BANT fields as the public intake form, but every one of them
+        // optional here — a rep entering a client by hand rarely has all of
+        // it up front, and unlike the public route this is trusted internal
+        // data entry, not a lead that needs gating before it's usable.
         $data = $request->validate([
             'full_name' => ['required', 'string', 'min:2', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255'],
             'phone' => ['required', 'string', 'min:7'],
+            'role' => ['nullable', 'string', 'max:80'],
+            'is_decision_maker' => ['nullable', 'boolean'],
             'business_type' => ['nullable', 'string', 'max:255'],
+            'product_type' => ['nullable', 'string', 'in:'.implode(',', config('leads.product_types'))],
+            'budget_band' => ['nullable', 'string', 'in:'.implode(',', config('leads.budget_bands'))],
+            'need_description' => ['nullable', 'string', 'max:2000'],
+            'desired_launch' => ['nullable', 'string', 'in:'.implode(',', config('leads.desired_launch_options'))],
         ]);
+
+        $track = $data['product_type'] ? Lead::trackForProductType($data['product_type']) : null;
+        if ($track && $data['budget_band']) {
+            $this->assertBudgetInRange($track, $data['budget_band']);
+        }
 
         $lead = Lead::create([
             'full_name' => $data['full_name'],
             'email' => $data['email'],
             'phone' => $data['phone'],
+            'role' => $data['role'] ?? null,
+            'is_decision_maker' => $data['is_decision_maker'] ?? false,
             'business_type' => $data['business_type'] ?? null,
+            'product_type' => $data['product_type'] ?? null,
+            'track' => $track,
+            'budget_band' => $data['budget_band'] ?? null,
+            'need_description' => $data['need_description'] ?? null,
+            'desired_launch' => $data['desired_launch'] ?? null,
             'status' => 'new',
             'stage' => 'new_lead',
             'assigned_sales_id' => $user->role === 'sales' ? $user->id : null,

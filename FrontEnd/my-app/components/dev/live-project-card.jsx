@@ -20,7 +20,7 @@ export function LiveProjectCard({ lead, onOpen }) {
       type="button"
       onClick={() => onOpen(lead)}
       className={cn(
-        "deck-inset group relative flex w-full flex-col rounded-2xl border border-hairline bg-deck-surface p-5 text-left transition-colors",
+        "deck-inset group relative flex w-full flex-col rounded-md border border-hairline bg-deck-surface p-5 text-left transition-colors",
         "hover:border-hairline-strong hover:bg-white/[0.035]",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60 focus-visible:ring-offset-2 focus-visible:ring-offset-deck-void",
       )}
@@ -36,7 +36,7 @@ export function LiveProjectCard({ lead, onOpen }) {
         </div>
 
         {overdue && (
-          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-status-critical/30 bg-status-critical/10 px-2.5 py-0.5 text-[0.75rem] font-medium text-status-critical">
+          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-status-critical/30 bg-status-critical/10 px-2.5 py-0.5 text-[0.75rem] font-medium text-status-critical">
             <CircleAlert aria-hidden className="size-3" />
             Overdue
           </span>
@@ -46,7 +46,7 @@ export function LiveProjectCard({ lead, onOpen }) {
       <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1.5 border-t border-hairline pt-3.5">
         <span
           className={cn(
-            "inline-flex items-center rounded-full px-2.5 py-0.5 text-[0.75rem] font-medium",
+            "inline-flex items-center rounded-md px-2.5 py-0.5 text-[0.75rem] font-medium",
             lead.stage === "lost"
               ? "bg-red-400/15 text-red-300"
               : "bg-brand/15 text-brand",

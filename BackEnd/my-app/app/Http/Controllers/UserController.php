@@ -8,18 +8,27 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Settings > Sales Reps — admin-only management of real sign-in accounts.
- * Scoped to role=sales throughout: this panel manages the sales team, not
- * every account in the system (admin/dev/client aren't edited here).
+ * Settings > Team Accounts — admin-only management of real sign-in
+ * accounts. Scoped to role IN (sales, dev): this panel manages the
+ * operating team, not every account in the system (admin stays out of any
+ * always-available form — created once via /setup; client isn't edited
+ * here either — see LeadController::createPortalAccount).
  */
 class UserController extends Controller
 {
+    public const MANAGEABLE_ROLES = ['sales', 'dev'];
+
     public function index(Request $request)
     {
-        $role = $request->query('role', 'sales');
+        // Accepts either a single role ("sales") or a comma-separated list
+        // ("sales,dev") — the Team Accounts panel needs both at once.
+        $roles = array_filter(array_map(
+            'trim',
+            explode(',', $request->query('role', 'sales')),
+        ));
 
         return response()->json(
-            User::where('role', $role)->orderBy('name')->get(['id', 'name', 'email', 'role', 'active'])
+            User::whereIn('role', $roles)->orderBy('name')->get(['id', 'name', 'email', 'role', 'active'])
         );
     }
 
@@ -29,13 +38,14 @@ class UserController extends Controller
             'name' => ['required', 'string', 'min:2', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'min:8'],
+            'role' => ['required', 'string', 'in:'.implode(',', self::MANAGEABLE_ROLES)],
         ]);
 
         $user = User::create([
             'name' => $data['name'],
             'email' => $data['email'],
             'password' => $data['password'],
-            'role' => 'sales',
+            'role' => $data['role'],
             'active' => true,
         ]);
 

@@ -5,7 +5,7 @@ import { consoleConfig } from "@/config/console";
 function Block({ className }) {
   return (
     <div
-      className={`deck-inset animate-pulse rounded-2xl border border-hairline bg-deck-surface ${className ?? ""}`}
+      className={`deck-inset animate-pulse rounded-md border border-hairline bg-deck-surface ${className ?? ""}`}
     />
   );
 }

@@ -53,7 +53,7 @@ export function ClientsView() {
 
   return (
     <div className="mx-auto flex w-full max-w-[105rem] flex-col gap-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex min-w-0 flex-1 flex-wrap items-start gap-3">
           <p className="mt-2 shrink-0 font-mono text-[0.6875rem] uppercase tracking-[0.14em] text-ink-muted">
             <span className="deck-nums text-ink">
@@ -72,7 +72,7 @@ export function ClientsView() {
         <AddLeadDialog />
       </div>
 
-      <section className="deck-inset relative rounded-2xl border border-hairline bg-deck-surface">
+      <section className="deck-inset relative rounded-md border border-hairline bg-deck-surface">
         {isPending ? (
           <div className="flex flex-col gap-3 p-5 pt-5 sm:p-6">
             {Array.from({ length: 5 }).map((_, i) => (

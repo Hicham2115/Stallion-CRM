@@ -160,7 +160,7 @@ export function LivePipelineBoard({
     return (
       <div className="flex gap-3 overflow-x-auto pb-2">
         {Array.from({ length: 5 }).map((_, i) => (
-          <Skeleton key={i} className="h-[24rem] min-w-[15rem] flex-1 rounded-2xl" />
+          <Skeleton key={i} className="h-[24rem] min-w-[15rem] flex-1 rounded-md" />
         ))}
       </div>
     );

@@ -27,7 +27,7 @@ export function RepSkeleton() {
 export function RepMissing() {
     return (<PageShell>
       <Panel>
-        <EmptyState icon={UserRoundX} title={content.missingRepTitle} description={content.missingRepDescription} action={<Link href={navigation.signOut.href} className="mt-1 inline-flex h-10 items-center rounded-xl border border-hairline bg-white/[0.03] px-4 text-[0.875rem] font-medium text-ink transition-colors hover:border-hairline-strong hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60">
+        <EmptyState icon={UserRoundX} title={content.missingRepTitle} description={content.missingRepDescription} action={<Link href={navigation.signOut.href} className="mt-1 inline-flex h-10 items-center rounded-md border border-hairline bg-white/[0.03] px-4 text-[0.875rem] font-medium text-ink transition-colors hover:border-hairline-strong hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60">
               {content.lead.forbiddenAction}
             </Link>}/>
       </Panel>
@@ -42,7 +42,7 @@ export function RepLeadBlocked({ reason }) {
       <Panel>
         <EmptyState icon={forbidden ? UserRoundX : SearchX} title={forbidden ? content.lead.forbiddenTitle : content.lead.notFoundTitle} description={forbidden
             ? content.lead.forbiddenDescription
-            : content.lead.notFoundDescription} action={<Link href={routes.pipeline} className="mt-1 inline-flex h-10 items-center rounded-xl border border-hairline bg-white/[0.03] px-4 text-[0.875rem] font-medium text-ink transition-colors hover:border-hairline-strong hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60">
+            : content.lead.notFoundDescription} action={<Link href={routes.pipeline} className="mt-1 inline-flex h-10 items-center rounded-md border border-hairline bg-white/[0.03] px-4 text-[0.875rem] font-medium text-ink transition-colors hover:border-hairline-strong hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60">
               {content.lead.forbiddenAction}
             </Link>}/>
       </Panel>

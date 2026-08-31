@@ -154,7 +154,7 @@ function StepRow({ step, overdue, onToggle, onRename, onDate, onRemove, }) {
             transform: CSS.Translate.toString(transform ? Object.assign(Object.assign({}, transform), { x: 0 }) : null),
             transition,
         }} className={cn("group flex flex-wrap items-center gap-x-3 gap-y-2 py-3 first:pt-0 last:pb-0", isDragging && "relative z-10 opacity-60")}>
-      {features.stepReorder && (<button ref={setActivatorNodeRef} type="button" {...attributes} {...listeners} aria-label={template(copy.dragLabel, { label: step.label })} className="grid size-7 shrink-0 cursor-grab touch-none place-items-center rounded-lg text-ink-faint transition-colors hover:bg-white/[0.05] hover:text-ink-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60 active:cursor-grabbing">
+      {features.stepReorder && (<button ref={setActivatorNodeRef} type="button" {...attributes} {...listeners} aria-label={template(copy.dragLabel, { label: step.label })} className="grid size-7 shrink-0 cursor-grab touch-none place-items-center rounded-md text-ink-faint transition-colors hover:bg-white/[0.05] hover:text-ink-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60 active:cursor-grabbing">
           <GripVertical aria-hidden className="size-4"/>
         </button>)}
 
@@ -175,7 +175,7 @@ function StepRow({ step, overdue, onToggle, onRename, onDate, onRemove, }) {
                     setDraft(step.label);
                     setEditing(false);
                 }
-            }} aria-label={copy.renameLabel} className="deck-input h-8 min-w-0 flex-1 rounded-lg border border-brand/45 bg-white/[0.04] px-2.5 text-[0.875rem] text-ink caret-brand outline-none focus:ring-2 focus:ring-brand/25"/>) : (<button type="button" onClick={() => {
+            }} aria-label={copy.renameLabel} className="deck-input h-8 min-w-0 flex-1 rounded-md border border-brand/45 bg-white/[0.04] px-2.5 text-[0.875rem] text-ink caret-brand outline-none focus:ring-2 focus:ring-brand/25"/>) : (<button type="button" onClick={() => {
                 if (!features.stepRename)
                     return;
                 setDraft(step.label);
@@ -201,7 +201,7 @@ function StepDate({ step, overdue, onChange, }) {
         {overdue && <span className="sr-only">{copy.overdueLabel}</span>}
       </span>
 
-      {step.targetDate && (<button type="button" onClick={() => onChange(null)} aria-label={`${copy.targetClear} — ${step.label}`} className="grid size-7 shrink-0 place-items-center rounded-lg text-ink-faint transition-colors hover:bg-white/[0.05] hover:text-ink-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60">
+      {step.targetDate && (<button type="button" onClick={() => onChange(null)} aria-label={`${copy.targetClear} — ${step.label}`} className="grid size-7 shrink-0 place-items-center rounded-md text-ink-faint transition-colors hover:bg-white/[0.05] hover:text-ink-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60">
         <X aria-hidden className="size-3.5"/>
       </button>)}
     </span>);

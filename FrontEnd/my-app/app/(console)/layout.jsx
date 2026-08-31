@@ -30,7 +30,7 @@ export default async function ConsoleLayout({ children }) {
           >
             <a
               href="#console-main"
-              className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-brand focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-deck-void"
+              className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-brand focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-deck-void"
             >
               {consoleConfig.content.skipToContent}
             </a>
@@ -60,7 +60,7 @@ export default async function ConsoleLayout({ children }) {
               toastOptions={{
                 classNames: {
                   toast:
-                    "cn-toast !border-hairline !bg-deck-card !text-ink !rounded-xl",
+                    "cn-toast !border-hairline !bg-deck-card !text-ink !rounded-md",
                   actionButton: "!bg-brand !text-deck-void !font-semibold",
                 },
               }}

@@ -27,7 +27,7 @@ export function SignOutLink({
       type="button"
       onClick={handleSignOut}
       className={cn(
-        "flex h-11 w-full items-center gap-3 rounded-xl px-3 text-left text-[0.9375rem] text-ink-soft transition-colors hover:bg-white/[0.045] hover:text-ink",
+        "flex h-11 w-full items-center gap-3 rounded-md px-3 text-left text-[0.9375rem] text-ink-soft transition-colors hover:bg-white/[0.045] hover:text-ink",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60 focus-visible:ring-offset-2 focus-visible:ring-offset-deck-rail",
         collapsed && "justify-center px-0",
         className,

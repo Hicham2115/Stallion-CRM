@@ -87,7 +87,7 @@ export function RepLeadHeader({ lead }) {
                 if (value)
                     void handleStage(value);
             }} disabled={movingStage}>
-                <SelectTrigger aria-label={content.lead.stageLabel} className={cn("deck-input h-10 w-[11rem] justify-between rounded-xl border border-hairline bg-white/[0.03] px-3.5 text-[0.875rem] text-ink", "hover:border-hairline-strong focus-visible:ring-2 focus-visible:ring-brand/50")}>
+                <SelectTrigger aria-label={content.lead.stageLabel} className={cn("deck-input h-10 w-[11rem] justify-between rounded-md border border-hairline bg-white/[0.03] px-3.5 text-[0.875rem] text-ink", "hover:border-hairline-strong focus-visible:ring-2 focus-visible:ring-brand/50")}>
                   <SelectValue />
                 </SelectTrigger>
 
@@ -99,7 +99,7 @@ export function RepLeadHeader({ lead }) {
               </Select>
             </span>)}
 
-          {features.quickActions && (<Button type="button" variant="outline" size="lg" onClick={() => void handleLogCall()} disabled={logging} className="h-10 rounded-xl font-medium">
+          {features.quickActions && (<Button type="button" variant="outline" size="lg" onClick={() => void handleLogCall()} disabled={logging} className="h-10 rounded-md font-medium">
               {logging ? (<LoaderCircle aria-hidden className="deck-spin size-4"/>) : (<PhoneCall aria-hidden className="size-4"/>)}
               {leadConfig.content.logCallLabel}
             </Button>)}

@@ -15,7 +15,7 @@ import { roleDefinitions } from "@/config/roles";
 export function MobileNav({ role }) {
     const [open, setOpen] = useState(false);
     return (<Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger render={<button type="button" aria-label={consoleConfig.content.openMenu} className="grid size-10 place-items-center rounded-xl border border-hairline bg-white/[0.03] text-ink-soft transition-colors hover:bg-white/[0.06] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60 lg:hidden"/>}>
+      <SheetTrigger render={<button type="button" aria-label={consoleConfig.content.openMenu} className="grid size-10 place-items-center rounded-md border border-hairline bg-white/[0.03] text-ink-soft transition-colors hover:bg-white/[0.06] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60 lg:hidden"/>}>
         <Menu aria-hidden className="size-[1.15rem]"/>
       </SheetTrigger>
 

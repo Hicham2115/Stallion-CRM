@@ -32,7 +32,7 @@ export function LiveStageColumn({
   return (
     <section
       className={cn(
-        "flex min-w-[15rem] flex-1 flex-col rounded-2xl border transition-colors",
+        "flex min-w-[15rem] flex-1 flex-col rounded-md border transition-colors",
         isOver ? "border-brand/60 bg-brand/[0.06]" : "border-hairline bg-deck-surface",
         dimmed && !isOver && "opacity-70",
       )}
@@ -57,7 +57,7 @@ export function LiveStageColumn({
 
         <span
           className={cn(
-            "deck-nums shrink-0 rounded-full px-2 py-0.5 font-mono text-[0.625rem] transition-colors",
+            "deck-nums shrink-0 rounded-md px-2 py-0.5 font-mono text-[0.625rem] transition-colors",
             isOver ? "bg-brand/20 text-brand" : "bg-white/[0.06] text-ink-muted",
           )}
         >
@@ -81,7 +81,7 @@ export function LiveStageColumn({
         </SortableContext>
 
         {showPlaceholder && activeLead && (
-          <p className="flex items-center gap-2 rounded-xl border border-dashed border-brand/60 bg-brand/[0.07] px-3 py-3 text-[0.75rem] text-brand">
+          <p className="flex items-center gap-2 rounded-md border border-dashed border-brand/60 bg-brand/[0.07] px-3 py-3 text-[0.75rem] text-brand">
             <CornerDownRight aria-hidden className="size-3.5 shrink-0" />
             <span className="truncate">
               {template(content.dropHerePreview, { name: activeLead.full_name })}
@@ -92,7 +92,7 @@ export function LiveStageColumn({
         {leads.length === 0 && !showPlaceholder && (
           <p
             className={cn(
-              "grid flex-1 place-items-center rounded-xl border border-dashed text-[0.75rem] transition-colors",
+              "grid flex-1 place-items-center rounded-md border border-dashed text-[0.75rem] transition-colors",
               isOver ? "border-brand/50 text-brand" : "border-hairline text-ink-muted",
             )}
           >

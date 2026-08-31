@@ -55,8 +55,8 @@ function InfoFormSkeleton() {
     <Panel className="flex h-full flex-col">
       <PanelHeader title="Personal Info" hint="Your name and email" />
       <PanelBody className="flex flex-col gap-4">
-        <Skeleton className="h-11 w-full rounded-xl" />
-        <Skeleton className="h-11 w-full rounded-xl" />
+        <Skeleton className="h-11 w-full rounded-md" />
+        <Skeleton className="h-11 w-full rounded-md" />
       </PanelBody>
     </Panel>
   );
@@ -124,7 +124,7 @@ function InfoForm({ user, onSaved }) {
           </div>
 
           <div className="mt-auto pt-2">
-            <Button type="submit" size="lg" disabled={save.isPending} className="h-11 rounded-xl font-semibold">
+            <Button type="submit" size="lg" disabled={save.isPending} className="h-11 rounded-md font-semibold">
               {save.isPending ? (
                 <>
                   <LoaderCircle aria-hidden className="deck-spin size-4" />
@@ -211,7 +211,7 @@ function PasswordForm() {
                 onClick={() => setShow((v) => !v)}
                 aria-label={show ? "Hide password" : "Show password"}
                 aria-pressed={show}
-                className="absolute right-2 top-1/2 grid size-8 -translate-y-1/2 place-items-center rounded-lg text-ink-muted transition hover:bg-white/[0.06] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50"
+                className="absolute right-2 top-1/2 grid size-8 -translate-y-1/2 place-items-center rounded-md text-ink-muted transition hover:bg-white/[0.06] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50"
               >
                 {show ? <EyeOff aria-hidden className="size-4" /> : <Eye aria-hidden className="size-4" />}
               </button>
@@ -254,7 +254,7 @@ function PasswordForm() {
           </div>
 
           <div className="mt-auto pt-2">
-            <Button type="submit" size="lg" disabled={change.isPending} className="h-11 rounded-xl font-semibold">
+            <Button type="submit" size="lg" disabled={change.isPending} className="h-11 rounded-md font-semibold">
               {change.isPending ? (
                 <>
                   <LoaderCircle aria-hidden className="deck-spin size-4" />

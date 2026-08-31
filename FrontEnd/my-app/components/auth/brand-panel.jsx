@@ -55,7 +55,7 @@ export function BrandPanel() {
 
       <div className="relative z-10 max-w-[38rem] pt-8 pb-0 sm:pb-6 lg:py-0">
         <p
-          className="reveal mb-6 inline-flex items-center gap-2.5 rounded-full border border-brand/25 bg-brand/[0.07] px-3.5 py-1.5 font-mono text-[0.625rem] uppercase tracking-[0.2em] text-brand shadow-[0_0_26px_-8px_rgb(186_252_12/0.45)] backdrop-blur-sm"
+          className="reveal mb-6 inline-flex items-center gap-2.5 rounded-md border border-brand/25 bg-brand/[0.07] px-3.5 py-1.5 font-mono text-[0.625rem] uppercase tracking-[0.2em] text-brand shadow-[0_0_26px_-8px_rgb(186_252_12/0.45)] backdrop-blur-sm"
           style={{ "--reveal-delay": "160ms" }}
         >
           <StatusDot pulse />

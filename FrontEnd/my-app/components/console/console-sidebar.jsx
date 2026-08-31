@@ -47,7 +47,7 @@ export function ConsoleSidebar({ defaultCollapsed = false, }) {
                 : layout.sidebarWidth,
         }} className="deck-grid sticky top-0 relative hidden h-dvh shrink-0 flex-col self-start overflow-hidden border-r border-hairline bg-deck-rail transition-[width] duration-300 ease-out lg:flex">
       <div className={cn("relative z-10 flex h-[4.5rem] shrink-0 items-center gap-3 px-5", collapsed && "justify-center px-0")}>
-        <Link href={homeForRole(role)} className="flex items-center gap-3 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60">
+        <Link href={homeForRole(role)} className="flex items-center gap-3 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60">
           <StallionLogo variant={collapsed ? "mark" : "lockup"} priority className="h-6"/>
           {!collapsed && (<span className="font-mono text-xs uppercase tracking-[0.24em] text-brand">
               {brandConfig.productName}
@@ -65,7 +65,7 @@ export function ConsoleSidebar({ defaultCollapsed = false, }) {
       <div className={cn("relative z-10 flex shrink-0 flex-col gap-2 p-3", collapsed && "p-2")}>
         {showStat && !collapsed && <SidebarStat />}
 
-        {features.collapsibleSidebar && (<button type="button" onClick={toggle} aria-label={collapsed ? content.expandSidebar : content.collapseSidebar} aria-expanded={!collapsed} className={cn("flex h-10 items-center gap-3 rounded-xl px-3 text-[0.8125rem] text-ink-muted transition-colors hover:bg-white/[0.045] hover:text-ink-soft", "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60 focus-visible:ring-offset-2 focus-visible:ring-offset-deck-rail", collapsed && "justify-center px-0")}>
+        {features.collapsibleSidebar && (<button type="button" onClick={toggle} aria-label={collapsed ? content.expandSidebar : content.collapseSidebar} aria-expanded={!collapsed} className={cn("flex h-10 items-center gap-3 rounded-md px-3 text-[0.8125rem] text-ink-muted transition-colors hover:bg-white/[0.045] hover:text-ink-soft", "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60 focus-visible:ring-offset-2 focus-visible:ring-offset-deck-rail", collapsed && "justify-center px-0")}>
             <PanelLeft aria-hidden className={cn("size-[1.15rem] shrink-0 transition-transform duration-300", collapsed && "rotate-180")}/>
             {!collapsed && <span>{content.collapseSidebar}</span>}
           </button>)}

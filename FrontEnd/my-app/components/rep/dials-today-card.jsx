@@ -51,7 +51,7 @@ export function DialsTodayCard({ definition, revealDelay = 0 }) {
 
   return (
     <div
-      className="reveal deck-inset relative flex flex-col overflow-hidden rounded-2xl border border-hairline bg-deck-surface p-5"
+      className="reveal deck-inset relative flex flex-col overflow-hidden rounded-md border border-hairline bg-deck-surface p-5"
       style={{ "--reveal-delay": `${revealDelay}ms` }}
     >
       <div className="flex items-start justify-between gap-3">
@@ -60,7 +60,7 @@ export function DialsTodayCard({ definition, revealDelay = 0 }) {
         </p>
         <span
           aria-hidden
-          className="grid size-8 shrink-0 place-items-center rounded-lg border border-hairline bg-white/[0.03] text-ink-muted"
+          className="grid size-8 shrink-0 place-items-center rounded-md border border-hairline bg-white/[0.03] text-ink-muted"
         >
           <Icon className="size-4" />
         </span>
@@ -81,7 +81,7 @@ export function DialsTodayCard({ definition, revealDelay = 0 }) {
             type="submit"
             disabled={save.isPending}
             aria-label="Save dial count"
-            className="grid size-9 shrink-0 place-items-center rounded-lg bg-brand text-deck-void transition hover:brightness-110 disabled:opacity-50"
+            className="grid size-9 shrink-0 place-items-center rounded-md bg-brand text-deck-void transition hover:brightness-110 disabled:opacity-50"
           >
             <Check aria-hidden className="size-4" />
           </button>

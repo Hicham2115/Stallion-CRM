@@ -10,7 +10,7 @@ const { content, routes } = devConfig;
 // alone can't: late, previewed, live.
 export function ProjectCard({ row }) {
     const { lead, progress, previewCount, live, overdue } = row;
-    return (<Link href={routes.project(lead.id)} className={cn("deck-inset group relative flex w-full flex-col rounded-2xl border border-hairline bg-deck-surface p-5 transition-colors", "hover:border-hairline-strong hover:bg-white/[0.035]", "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60 focus-visible:ring-offset-2 focus-visible:ring-offset-deck-void")}>
+    return (<Link href={routes.project(lead.id)} className={cn("deck-inset group relative flex w-full flex-col rounded-md border border-hairline bg-deck-surface p-5 transition-colors", "hover:border-hairline-strong hover:bg-white/[0.035]", "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60 focus-visible:ring-offset-2 focus-visible:ring-offset-deck-void")}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="truncate font-display text-[1.0625rem] font-semibold tracking-[-0.02em] text-ink">
@@ -21,7 +21,7 @@ export function ProjectCard({ row }) {
           </p>
         </div>
 
-        {overdue > 0 && (<span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-status-critical/30 bg-status-critical/10 px-2.5 py-0.5 text-[0.75rem] font-medium text-status-critical">
+        {overdue > 0 && (<span className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-status-critical/30 bg-status-critical/10 px-2.5 py-0.5 text-[0.75rem] font-medium text-status-critical">
             <CircleAlert aria-hidden className="size-3"/>
             {template(content.list.overdueChip, { n: overdue })}
           </span>)}

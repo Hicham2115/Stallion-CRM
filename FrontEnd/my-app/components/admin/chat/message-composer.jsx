@@ -46,9 +46,9 @@ disabled = false, }) {
           {content.composerPlaceholder}
         </label>
 
-        <textarea id="chat-composer" ref={fieldRef} rows={1} value={body} disabled={disabled} onChange={(event) => setBody(event.target.value)} onKeyDown={handleKeyDown} placeholder={content.composerPlaceholder} className="deck-input max-h-32 min-h-[2.75rem] flex-1 resize-none rounded-xl border border-hairline bg-white/[0.02] px-3.5 py-3 text-[0.875rem] leading-snug text-ink caret-brand outline-none transition duration-200 placeholder:text-ink-muted hover:border-hairline-strong hover:bg-white/[0.035] focus:border-brand/55 focus:bg-white/[0.05] focus:ring-4 focus:ring-brand/10 disabled:cursor-not-allowed disabled:opacity-50"/>
+        <textarea id="chat-composer" ref={fieldRef} rows={1} value={body} disabled={disabled} onChange={(event) => setBody(event.target.value)} onKeyDown={handleKeyDown} placeholder={content.composerPlaceholder} className="deck-input max-h-32 min-h-[2.75rem] flex-1 resize-none rounded-md border border-hairline bg-white/[0.02] px-3.5 py-3 text-[0.875rem] leading-snug text-ink caret-brand outline-none transition duration-200 placeholder:text-ink-muted hover:border-hairline-strong hover:bg-white/[0.035] focus:border-brand/55 focus:bg-white/[0.05] focus:ring-4 focus:ring-brand/10 disabled:cursor-not-allowed disabled:opacity-50"/>
 
-        <Button type="submit" size="icon-lg" disabled={!canSend} aria-label={content.sendLabel} className="size-11 shrink-0 rounded-xl">
+        <Button type="submit" size="icon-lg" disabled={!canSend} aria-label={content.sendLabel} className="size-11 shrink-0 rounded-md">
           {pending ? (<LoaderCircle aria-hidden className="deck-spin size-4"/>) : (<SendHorizontal aria-hidden/>)}
         </Button>
       </div>
