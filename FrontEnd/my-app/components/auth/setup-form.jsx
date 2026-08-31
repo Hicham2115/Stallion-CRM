@@ -45,7 +45,6 @@ const delay = (ms) => ({ "--reveal-delay": `${ms}ms` });
 export function SetupForm() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
-  const [confirmWipe, setConfirmWipe] = useState(false);
 
   const createAccount = useMutation({
     mutationFn: async (values) => {
@@ -277,27 +276,9 @@ export function SetupForm() {
             )}
           </form.Field>
 
-          <label className="group flex cursor-pointer select-none items-start gap-2.5 pt-0.5">
-            <span className="relative mt-0.5 grid size-[18px] shrink-0 place-items-center">
-              <input
-                type="checkbox"
-                checked={confirmWipe}
-                onChange={(event) => setConfirmWipe(event.target.checked)}
-                className="peer absolute inset-0 cursor-pointer appearance-none rounded-md outline-none"
-              />
-              <span
-                aria-hidden
-                className="pointer-events-none absolute inset-0 rounded-md border border-hairline-strong bg-white/[0.03] transition-colors peer-checked:border-status-critical peer-checked:bg-status-critical peer-focus-visible:ring-2 peer-focus-visible:ring-status-critical/50 peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-deck-card"
-              />
-            </span>
-            <span className="text-[0.8125rem] leading-relaxed text-ink-muted transition-colors group-hover:text-ink-soft">
-              I understand this deletes the demo accounts and all demo leads.
-            </span>
-          </label>
-
           <button
             type="submit"
-            disabled={createAccount.isPending || !confirmWipe}
+            disabled={createAccount.isPending}
             className="deck-sweep group relative isolate flex h-12 w-full items-center justify-center gap-2 overflow-hidden rounded-md bg-[linear-gradient(100deg,var(--brand-green-mid),var(--brand-lime))] text-[0.9375rem] font-semibold tracking-[-0.01em] text-[#0a1000] shadow-[0_12px_32px_-14px_rgb(186_252_12/0.65)] transition duration-200 hover:-translate-y-0.5 hover:brightness-[1.06] hover:shadow-[0_18px_40px_-14px_rgb(186_252_12/0.8)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-deck-card active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:brightness-100"
           >
             {createAccount.isPending ? (
