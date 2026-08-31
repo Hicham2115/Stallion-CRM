@@ -10,16 +10,18 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 /**
- * First-run setup — lets whoever deploys this app create their OWN admin
- * account instead of keeping the seeded demo one (DatabaseSeeder) and its
- * sample leads. One-time only: once `settings.setup_completed_at` is set,
- * both endpoints refuse to run again, so this can never become an open
- * admin-registration endpoint sitting on a live deployment.
+ * /setup — creates a new admin account. Always reachable, before login, on
+ * purpose (an admin locked out with no other admin account can still get
+ * back in). The demo-data wipe (seed users + every lead/ad-spend row) only
+ * ever runs ONCE, on the very first submission of this form for a fresh
+ * install (guarded by `settings.setup_completed_at` being null) — every
+ * later submission just creates another admin account and touches nothing
+ * else.
  */
 class SetupController extends Controller
 {
     // The four accounts DatabaseSeeder creates — deleted, with all demo
-    // data, the moment a real admin account replaces them.
+    // data, the moment the first real admin account replaces them.
     private const SEED_EMAILS = [
         'admin@stallionadvertising.ma',
         'sales@stallionadvertising.ma',
@@ -36,10 +38,6 @@ class SetupController extends Controller
 
     public function store(Request $request)
     {
-        if (Setting::current()->setup_completed_at !== null) {
-            return response()->json(['error' => 'Setup has already been completed.'], 403);
-        }
-
         $data = $request->validate([
             'name' => ['required', 'string', 'min:2', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
@@ -47,16 +45,22 @@ class SetupController extends Controller
         ]);
 
         $user = DB::transaction(function () use ($data) {
-            // Every lead in a fresh install is demo data — cascades
-            // attribution, segmentation, stage history, developer
-            // assignments, milestones and previews with it.
-            Lead::query()->delete();
-            AdSpend::query()->delete();
+            $isFirstSetup = Setting::current()->setup_completed_at === null;
 
-            foreach (User::whereIn('email', self::SEED_EMAILS)->get() as $seedUser) {
-                $seedUser->tokens()->delete();
-                $seedUser->notifications()->delete();
-                $seedUser->delete();
+            if ($isFirstSetup) {
+                // Every lead in a fresh install is demo data — cascades
+                // attribution, segmentation, stage history, developer
+                // assignments, milestones and previews with it. Only ever
+                // runs this one time — a later admin created here must never
+                // wipe real production data.
+                Lead::query()->delete();
+                AdSpend::query()->delete();
+
+                foreach (User::whereIn('email', self::SEED_EMAILS)->get() as $seedUser) {
+                    $seedUser->tokens()->delete();
+                    $seedUser->notifications()->delete();
+                    $seedUser->delete();
+                }
             }
 
             $admin = User::create([
@@ -67,7 +71,9 @@ class SetupController extends Controller
                 'active' => true,
             ]);
 
-            Setting::current()->update(['setup_completed_at' => now()]);
+            if ($isFirstSetup) {
+                Setting::current()->update(['setup_completed_at' => now()]);
+            }
 
             return $admin;
         });

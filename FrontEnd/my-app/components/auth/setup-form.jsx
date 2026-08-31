@@ -39,9 +39,9 @@ const inputBase = cn(
 const errorText = cn("mt-2", fieldErrorText);
 const delay = (ms) => ({ "--reveal-delay": `${ms}ms` });
 
-// First-run only — see routes/api.php's note on SetupController. Creates a
-// real admin account and, in the same request, deletes the seeded demo
-// accounts and every demo lead, so nothing from the seed survives it.
+// Always reachable at /setup, before login — see SetupController. Creates
+// an admin account; only the very first submission ever (for a fresh
+// install) also deletes the seeded demo accounts and every demo lead.
 export function SetupForm() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
@@ -99,13 +99,13 @@ export function SetupForm() {
 
         <header>
           <p className="font-mono text-[0.625rem] uppercase tracking-[0.2em] text-brand">
-            First-run setup
+            Admin setup
           </p>
           <h2 className="mt-3 font-display text-[1.75rem] font-semibold tracking-[-0.025em] text-ink">
-            Create your admin account
+            Create an admin account
           </h2>
           <p className="mt-2 text-sm leading-relaxed text-ink-muted">
-            This replaces the demo sign-ins from the seed data — you only do this once.
+            Anyone with this link can create an admin account — keep it to people you trust.
           </p>
         </header>
 
