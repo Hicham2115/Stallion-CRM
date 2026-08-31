@@ -1,13 +1,12 @@
 "use client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "@tanstack/react-form";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   ArrowRight,
-  Check,
   Eye,
   EyeOff,
   LoaderCircle,
@@ -52,9 +51,19 @@ const ROLE_ROUTES = {
 
 export function LoginForm() {
   const router = useRouter();
-  const [remember, setRemember] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [capsLock, setCapsLock] = useState(false);
+
+  // A fresh install (seeded demo accounts, no real admin created yet) goes
+  // straight to /setup instead of showing a login form for accounts nobody
+  // real owns yet — see SetupController.
+  const { data: setupStatus } = useQuery({
+    queryKey: ["setup-status"],
+    queryFn: async () => (await api.get("/api/setup/status")).data,
+  });
+  useEffect(() => {
+    if (setupStatus?.needs_setup) router.replace("/setup");
+  }, [setupStatus, router]);
 
   const signIn = useMutation({
     mutationFn: async (values) => {
@@ -277,30 +286,6 @@ export function LoginForm() {
               </div>
             )}
           </form.Field>
-
-          <label className="group inline-flex cursor-pointer select-none items-center gap-2.5 pt-0.5">
-            <span className="relative grid size-[18px] shrink-0 place-items-center">
-              <input
-                type="checkbox"
-                name="remember"
-                checked={remember}
-                onChange={(event) => setRemember(event.target.checked)}
-                className="peer absolute inset-0 cursor-pointer appearance-none rounded-md outline-none"
-              />
-              <span
-                aria-hidden
-                className="pointer-events-none absolute inset-0 rounded-md border border-hairline-strong bg-white/[0.03] transition-colors peer-checked:border-brand peer-checked:bg-brand peer-focus-visible:ring-2 peer-focus-visible:ring-brand/50 peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-deck-card"
-              />
-              <Check
-                aria-hidden
-                strokeWidth={3.5}
-                className="pointer-events-none relative size-3 text-deck-void opacity-0 transition-opacity peer-checked:opacity-100"
-              />
-            </span>
-            <span className="text-[0.8125rem] text-ink-muted transition-colors group-hover:text-ink-soft">
-              Keep me signed in
-            </span>
-          </label>
 
           <button
             type="submit"

@@ -8,6 +8,7 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PortalController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\SetupController;
 use App\Http\Controllers\UserController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -18,6 +19,12 @@ Route::get('/user', function (Request $request) {
 
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:10,1');
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
+
+// First-run setup — replaces the seeded demo admin with a real account.
+// No auth: by definition, nobody real has signed in yet. Self-guarded by
+// SetupController's own one-time check, not just this being unlinked.
+Route::get('/setup/status', [SetupController::class, 'status']);
+Route::post('/setup', [SetupController::class, 'store'])->middleware('throttle:5,1');
 
 // Settings > Personal Info — a user editing their own account. See
 // ProfileController's note on why this needs no role gate.

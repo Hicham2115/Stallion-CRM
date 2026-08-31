@@ -5,6 +5,7 @@ import {
   Paperclip,
   X,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -51,6 +52,9 @@ export function StepBant({
       onFileErrorChange(result.message);
       onBriefFileChange(null);
       e.target.value = "";
+      toast.error(result.message, {
+        description: "You can still submit without an attachment.",
+      });
       return;
     }
     onFileErrorChange(null);

@@ -286,7 +286,11 @@ class LeadController extends Controller
             'need_description' => ['required', 'string', 'min:10', 'max:2000'],
             'desired_launch' => ['required', 'string', 'in:'.implode(',', config('leads.desired_launch_options'))],
 
-            'brief_file' => ['nullable', 'file', 'max:10240', 'mimes:pdf,doc,docx,png,jpg,jpeg'],
+            // No size/mime/upload validation here on purpose: this is a
+            // nice-to-have attachment, never a reason to reject a lead.
+            // A bad or oversized file is just dropped further down instead
+            // of failing the whole submission.
+            'brief_file' => ['nullable'],
 
             'attribution' => ['nullable', 'string'],
         ]);
@@ -299,9 +303,22 @@ class LeadController extends Controller
 
         try {
             $lead = DB::transaction(function () use ($request, $data, $attribution) {
-                $briefPath = $request->hasFile('brief_file')
-                    ? $request->file('brief_file')->store('lead-briefs', 'public')
-                    : null;
+                // Best-effort attachment — a lead must never fail to be
+                // created because of a problem with the optional brief file
+                // (too large for this server's upload limit, a corrupt
+                // upload, a storage error, etc). Any failure here is simply
+                // dropped, not surfaced to the caller.
+                $briefPath = null;
+                if ($request->hasFile('brief_file')) {
+                    try {
+                        $file = $request->file('brief_file');
+                        if ($file->isValid()) {
+                            $briefPath = $file->store('lead-briefs', 'public');
+                        }
+                    } catch (\Throwable) {
+                        $briefPath = null;
+                    }
+                }
 
                 $lead = Lead::create([
                     'full_name' => $data['full_name'],

@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -32,6 +32,7 @@ import { fieldBase, fieldLabel } from "@/components/deck/field";
 import { adminConfig } from "@/config/admin";
 import { liveStageLabel } from "@/config/pipeline-live";
 import { api } from "@/lib/axios";
+import { useDebouncedValue } from "@/lib/use-debounced-value";
 import { getErrorMessage } from "@/lib/get-error-message";
 import { formatCurrency, formatDate, initialsOf } from "@/lib/format";
 import { PRODUCT_TYPES } from "@/lib/validations/lead";
@@ -176,7 +177,11 @@ function emptyWorkflowState(lead) {
     needs_second_meeting: lead?.needs_second_meeting ?? null,
     second_meeting_scheduled_for: toDateTimeLocal(lead?.second_meeting_scheduled_for),
     second_meeting_outcome_good: lead?.second_meeting_outcome_good ?? null,
-    mvp_type: lead?.mvp_type ?? "",
+    // Defaults to what they picked on the intake form (product_type) —
+    // most MVPs end up being exactly that, so this saves a redundant pick.
+    // Still just a starting point: admin/sales can change it, and once
+    // mvp_type is actually set on the lead, that real value wins.
+    mvp_type: lead?.mvp_type ?? lead?.product_type ?? "",
     mvp_deadline: toDateOnly(lead?.mvp_deadline),
     mvp_delivered_at: toDateTimeLocal(lead?.mvp_delivered_at),
     closing_meeting_scheduled_for: toDateTimeLocal(lead?.closing_meeting_scheduled_for),
@@ -254,37 +259,55 @@ function LeadDetailsContent({ lead }) {
     setForm((f) => ({ ...f, [key]: value }));
   }
 
-  async function handleSave() {
+  async function handleSave(values) {
     try {
       await Promise.all([
         save.mutateAsync({
-          consult_scheduled_for: form.consult_scheduled_for || null,
-          consult_attended: form.consult_attended,
-          consult_outcome: form.consult_outcome || null,
-          needs_second_meeting: form.needs_second_meeting,
-          second_meeting_scheduled_for: form.second_meeting_scheduled_for || null,
-          second_meeting_outcome_good: form.second_meeting_outcome_good,
-          mvp_type: form.mvp_type || null,
-          mvp_deadline: form.mvp_deadline || null,
-          mvp_delivered_at: form.mvp_delivered_at || null,
-          closing_meeting_scheduled_for: form.closing_meeting_scheduled_for || null,
-          closing_meeting_attended: form.closing_meeting_attended,
-          deposit_collected: form.deposit_collected,
-          project_cost: form.project_cost === "" ? null : Number(form.project_cost),
+          consult_scheduled_for: values.consult_scheduled_for || null,
+          consult_attended: values.consult_attended,
+          consult_outcome: values.consult_outcome || null,
+          needs_second_meeting: values.needs_second_meeting,
+          second_meeting_scheduled_for: values.second_meeting_scheduled_for || null,
+          second_meeting_outcome_good: values.second_meeting_outcome_good,
+          mvp_type: values.mvp_type || null,
+          mvp_deadline: values.mvp_deadline || null,
+          mvp_delivered_at: values.mvp_delivered_at || null,
+          closing_meeting_scheduled_for: values.closing_meeting_scheduled_for || null,
+          closing_meeting_attended: values.closing_meeting_attended,
+          deposit_collected: values.deposit_collected,
+          project_cost: values.project_cost === "" ? null : Number(values.project_cost),
         }),
         // Only sent when the picker actually changed something worth
         // writing — an admin who never touched it shouldn't fire a
-        // no-op sync every time they save the rest of the form.
-        isAdmin && form.developer_id !== (lead.developers?.[0]?.id ?? null)
-          ? assignDeveloper.mutateAsync(form.developer_id)
+        // no-op sync every time this autosaves the rest of the form.
+        isAdmin && values.developer_id !== (lead.developers?.[0]?.id ?? null)
+          ? assignDeveloper.mutateAsync(values.developer_id)
           : Promise.resolve(),
       ]);
-      toast.success("Saved");
       queryClient.invalidateQueries({ queryKey: ["leads"] });
     } catch (error) {
       toast.error(getErrorMessage(error));
     }
   }
+
+  // Autosave — debounced so a burst of edits (typing, several toggles in a
+  // row) becomes one PATCH, not one per keystroke. Skips the render that
+  // just opened the dialog / loaded the lead, so opening it never fires a
+  // no-op save before anyone has touched anything.
+  const debouncedForm = useDebouncedValue(form, 900);
+  const skipNextSave = useRef(true);
+  useEffect(() => {
+    skipNextSave.current = true;
+  }, [lead.id]);
+  useEffect(() => {
+    if (!canEdit) return;
+    if (skipNextSave.current) {
+      skipNextSave.current = false;
+      return;
+    }
+    handleSave(debouncedForm);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedForm, canEdit]);
 
   return (
     <DialogContent className="min-w-0 sm:max-w-3xl gap-0 p-0">
@@ -465,7 +488,7 @@ function LeadDetailsContent({ lead }) {
                   </EditRow>
                   <EditRow label="Outcome">
                     <Select
-                      value={form.consult_outcome || undefined}
+                      value={form.consult_outcome || ""}
                       onValueChange={(v) => set("consult_outcome", v)}
                     >
                       <SelectTrigger className="h-10 w-full">
@@ -566,7 +589,7 @@ function LeadDetailsContent({ lead }) {
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                   <EditRow label="Type">
                     <Select
-                      value={form.mvp_type || undefined}
+                      value={form.mvp_type || ""}
                       onValueChange={(v) => set("mvp_type", v)}
                     >
                       <SelectTrigger className="h-10 w-full">
@@ -751,14 +774,9 @@ function LeadDetailsContent({ lead }) {
 
             {canEdit && (
               <div className="flex justify-end">
-                <Button
-                  type="button"
-                  disabled={saving}
-                  onClick={handleSave}
-                  className="h-10"
-                >
-                  {saving ? "Saving…" : "Save workflow fields"}
-                </Button>
+                <span className="text-xs text-ink-muted">
+                  {saving ? "Saving…" : "Changes save automatically"}
+                </span>
               </div>
             )}
           </div>
