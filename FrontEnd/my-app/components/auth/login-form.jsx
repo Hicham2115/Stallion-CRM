@@ -308,6 +308,16 @@ export function LoginForm() {
             )}
           </button>
         </form>
+
+        <p className="mt-6 text-center text-[0.8125rem] text-ink-muted">
+          Need an admin account?{" "}
+          <Link
+            href="/setup"
+            className="font-medium text-brand underline-offset-4 hover:underline"
+          >
+            Sign up
+          </Link>
+        </p>
       </div>
 
       <div

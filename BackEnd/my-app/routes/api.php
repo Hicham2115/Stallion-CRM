@@ -20,9 +20,9 @@ Route::get('/user', function (Request $request) {
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:10,1');
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
 
-// First-run setup — replaces the seeded demo admin with a real account.
-// No auth: by definition, nobody real has signed in yet. Self-guarded by
-// SetupController's own one-time check, not just this being unlinked.
+// /setup — always-reachable, no-auth admin account creation (see
+// SetupController for why: only the very first submission wipes demo data,
+// every later one just adds an admin). Throttled since it's unauthenticated.
 Route::get('/setup/status', [SetupController::class, 'status']);
 Route::post('/setup', [SetupController::class, 'store'])->middleware('throttle:5,1');
 

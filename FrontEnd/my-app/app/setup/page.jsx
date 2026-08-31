@@ -1,26 +1,9 @@
-"use client";
-
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
-import { LoaderCircle } from "lucide-react";
 import { BrandPanel } from "@/components/auth/brand-panel";
 import { SetupForm } from "@/components/auth/setup-form";
-import { api } from "@/lib/axios";
 
-// Redirects to /login once setup is done — this page only exists for the
-// brief window before a real admin account replaces the seeded one.
+// Always reachable, before login — see SetupController for why this is
+// safe (only the very first submission ever wipes demo data).
 export default function SetupPage() {
-  const router = useRouter();
-  const { data, isPending } = useQuery({
-    queryKey: ["setup-status"],
-    queryFn: async () => (await api.get("/api/setup/status")).data,
-  });
-
-  useEffect(() => {
-    if (data && !data.needs_setup) router.replace("/login");
-  }, [data, router]);
-
   return (
     <main data-surface="deck" className="relative isolate flex-1">
       <div className="grid min-h-dvh grid-cols-1 grid-rows-[auto_1fr] lg:grid-cols-[1.08fr_0.92fr] lg:grid-rows-1">
@@ -33,14 +16,7 @@ export default function SetupPage() {
           />
 
           <div className="relative z-10 flex w-full justify-center lg:-translate-x-6">
-            {isPending || !data ? (
-              <LoaderCircle
-                aria-hidden
-                className="deck-spin size-6 text-ink-muted"
-              />
-            ) : data.needs_setup ? (
-              <SetupForm />
-            ) : null}
+            <SetupForm />
           </div>
         </section>
       </div>
