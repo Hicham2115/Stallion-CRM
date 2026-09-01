@@ -11,7 +11,8 @@ import { PageShell } from "@/components/console/page-shell";
 import { EmptyState } from "@/components/deck/empty-state";
 import { Panel } from "@/components/deck/panel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { analysisConfig, rangeParams } from "@/config/analysis";
+import { useSession } from "@/components/console/session-provider";
+import { analysisConfig, forAudience, rangeParams } from "@/config/analysis";
 import { api } from "@/lib/axios";
 import { getErrorMessage } from "@/lib/get-error-message";
 const { content, features, kpis, campaignColumns, creativeColumns } = analysisConfig;
@@ -40,6 +41,16 @@ const { content, features, kpis, campaignColumns, creativeColumns } = analysisCo
 export function AnalysisView() {
     const [rangeDays, setRangeDays] = useState(analysisConfig.defaultRangeDays);
     const params = rangeParams(rangeDays);
+    // Safe to read without waiting on useSessionHydrated(): the /admin and
+    // /rep layout guards both render nothing until the session has hydrated,
+    // so this component never mounts before `role` is settled. (useSession()
+    // falls back to "admin" when the store is empty, which is exactly the
+    // value that must not be trusted early — hence the note.)
+    const { role } = useSession();
+    // The server has ALREADY removed anything this role may not see (see
+    // AnalyticsController::withoutAdminOnlyFigures). Filtering here as well
+    // is what stops a redacted figure rendering as a permanent "—" card.
+    const visibleKpis = forAudience(kpis, role);
 
     const { data, isPending, isError, error } = useQuery({
         // The "analytics" prefix is what ad-spend-panel.jsx invalidates after
@@ -80,18 +91,18 @@ export function AnalysisView() {
             </Panel>) : (<>
               <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
                 {isPending
-                    ? kpis.map((definition) => <KpiCardSkeleton key={definition.key}/>)
-                    : kpis.map((definition, index) => (<KpiCard key={definition.key} definition={definition} value={valueFor(data, definition)} emptyHint={content.noDataSr} revealDelay={index * 60}/>))}
+                    ? visibleKpis.map((definition) => <KpiCardSkeleton key={definition.key}/>)
+                    : visibleKpis.map((definition, index) => (<KpiCard key={definition.key} definition={definition} value={valueFor(data, definition)} emptyHint={content.noDataSr} revealDelay={index * 60}/>))}
               </div>
 
               {ltvNote && (<Hint label={content.ltvNoteLabel} text={ltvNote}/>)}
 
-              {features.campaignTable && !isPending && (<PerformanceTable title={content.campaignTitle} hint={content.campaignHint} caption={content.campaignCaption} columns={campaignColumns} rows={campaigns} emptyTitle={content.emptyCampaigns} note={content.attributionNote} rowKey={(row) => row.campaign}/>)}
+              {features.campaignTable && !isPending && (<PerformanceTable title={content.campaignTitle} hint={content.campaignHint} caption={content.campaignCaption} columns={forAudience(campaignColumns, role)} rows={campaigns} emptyTitle={content.emptyCampaigns} note={content.attributionNote} rowKey={(row) => row.campaign}/>)}
 
               {/* No `note` here on purpose: the attribution caveat is stated
                   once, under the first table it applies to. Repeating it
                   verbatim makes both copies easier to stop reading. */}
-              {features.creativeTable && !isPending && (<PerformanceTable title={content.creativeTitle} hint={content.creativeHint} caption={content.creativeCaption} columns={creativeColumns} rows={creatives} emptyTitle={content.emptyCreatives} rowKey={(row) => `${row.creative}·${row.ad_set ?? ""}·${row.campaign ?? ""}`}/>)}
+              {features.creativeTable && !isPending && (<PerformanceTable title={content.creativeTitle} hint={content.creativeHint} caption={content.creativeCaption} columns={forAudience(creativeColumns, role)} rows={creatives} emptyTitle={content.emptyCreatives} rowKey={(row) => `${row.creative}·${row.ad_set ?? ""}·${row.campaign ?? ""}`}/>)}
             </>)}
         </TabsContent>
 
@@ -106,16 +117,20 @@ export function AnalysisView() {
    Rule); a filled segment here would be a second one. */
 const TAB_TRIGGER = "h-auto flex-none px-0.5 pb-2 font-mono text-[0.6875rem] uppercase tracking-[0.14em] text-ink-muted transition-colors hover:text-ink-soft data-active:text-ink data-active:after:bg-brand";
 /** A quiet explanation beside the figures, for the things that are empty on
- *  purpose. Neutral, not a warning: nothing here is wrong. */
+ *  purpose. Neutral, not a warning: nothing here is wrong.
+ *
+ *  A Panel, not a bespoke bordered div — the One Container Rule is that every
+ *  block on a console screen is a Panel, so that restyling the app's surfaces
+ *  stays one file. */
 function Hint({ label, text }) {
-    return (<div className="flex items-start gap-3 rounded-md border border-hairline bg-white/[0.02] px-4 py-3.5">
+    return (<Panel className="flex items-start gap-3 px-5 py-4 sm:px-6">
       <Info aria-hidden className="mt-0.5 size-4 shrink-0 text-ink-muted"/>
       <p className="text-[0.8125rem] leading-relaxed text-ink-muted">
         <span className="font-mono uppercase tracking-[0.14em] text-ink-soft">{label}</span>
         {" — "}
         {text}
       </p>
-    </div>);
+    </Panel>);
 }
 /**
  * Reads a card's figure out of the KPI payload by its declared `path`, and

@@ -237,6 +237,75 @@ class AdSpendImportTest extends TestCase
         $this->assertSame('99.00', $spendOf('With symbol'));
     }
 
+    // ── THE SHIPPED SAMPLE FILES ─────────────────────────────────────────
+
+    /** The real fixtures in database/samples/ad-spend, or a skip if someone
+     *  has removed them — they are QA aids, not required for the suite. */
+    private function sample(string $name): UploadedFile
+    {
+        $path = database_path("samples/ad-spend/{$name}");
+
+        if (! is_file($path)) {
+            $this->markTestSkipped("database/samples/ad-spend/{$name} is not present.");
+        }
+
+        return $this->csv(file_get_contents($path), $name);
+    }
+
+    /**
+     * Pins the exact figures database/samples/ad-spend/README.md tells a
+     * developer to expect. If someone edits a sample CSV, this fails rather
+     * than letting the README quietly start lying about what the import does.
+     */
+    public function test_the_shipped_sample_export_matches_its_documented_totals(): void
+    {
+        $this->actingAsRole('admin');
+
+        $this->post('/api/ad-spend/import', ['file' => $this->sample('meta-ads-export.csv')])
+            ->assertOk()
+            ->assertJson(['imported' => 12, 'skipped' => 0, 'errors' => []]);
+
+        $this->assertSame(12, AdSpend::count());
+        $this->assertEqualsWithDelta(3142.05, (float) AdSpend::sum('spend'), 0.001);
+        $this->assertEqualsWithDelta(2705.45, (float) AdSpend::where('campaign', 'stallion-q3-webdev')->sum('spend'), 0.001);
+        $this->assertEqualsWithDelta(436.60, (float) AdSpend::where('campaign', 'stallion-q3-ecom')->sum('spend'), 0.001);
+
+        // Extra columns an Ads Manager export carries (Impressions, Link
+        // clicks) are ignored, not a reason to skip the row.
+        $this->assertSame('meta', AdSpend::first()->platform);
+    }
+
+    /** The override demo in the README: same 12 keys, restated amounts. */
+    public function test_the_corrected_sample_overwrites_rather_than_doubling(): void
+    {
+        $this->actingAsRole('admin');
+
+        $this->post('/api/ad-spend/import', ['file' => $this->sample('meta-ads-export.csv')])->assertOk();
+        $this->post('/api/ad-spend/import', ['file' => $this->sample('meta-ads-export-corrected.csv')])
+            ->assertOk()
+            ->assertJson(['imported' => 12, 'skipped' => 0]);
+
+        $this->assertSame(12, AdSpend::count(), 'A re-import created new rows instead of overwriting.');
+        $this->assertEqualsWithDelta(3213.80, (float) AdSpend::sum('spend'), 0.001);
+
+        // And the last import of a row always wins, in both directions.
+        $this->post('/api/ad-spend/import', ['file' => $this->sample('meta-ads-export.csv')])->assertOk();
+        $this->assertSame(12, AdSpend::count());
+        $this->assertEqualsWithDelta(3142.05, (float) AdSpend::sum('spend'), 0.001);
+    }
+
+    /** The malformed-row demo: 2 good rows in, 3 reported, nothing fatal. */
+    public function test_the_bad_row_sample_skips_exactly_three_rows(): void
+    {
+        $this->actingAsRole('admin');
+
+        $response = $this->post('/api/ad-spend/import', ['file' => $this->sample('meta-ads-export-with-bad-rows.csv')]);
+
+        $response->assertOk()->assertJson(['imported' => 2, 'skipped' => 3]);
+        $this->assertCount(3, $response->json('errors'));
+        $this->assertEqualsWithDelta(465.65, (float) AdSpend::sum('spend'), 0.001);
+    }
+
     // ── LIST + DELETE ────────────────────────────────────────────────────
 
     public function test_index_returns_newest_first_with_a_total(): void

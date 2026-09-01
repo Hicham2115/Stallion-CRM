@@ -170,7 +170,7 @@ class AdSpendController extends Controller
     /**
      * @param  resource  $handle
      * @return array{0: list<array<string, mixed>>, 1: int, 2: list<string>}
-     *                                                                      [rows ready to upsert, rows skipped, human-readable reasons]
+     *                                                                       [rows ready to upsert, rows skipped, human-readable reasons]
      */
     private function parse($handle): array
     {

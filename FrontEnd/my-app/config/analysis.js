@@ -71,6 +71,13 @@ export const analysisConfig = {
      * Every one of these can legitimately be null. KpiService returns null,
      * never 0, for a ratio whose denominator is unknown — the card renders an
      * em dash for it. See content.noData.
+     *
+     * `audience: "admin"` hides a card from a sales rep. A rep sees what a
+     * customer COSTS; what the agency EARNS and keeps is the admin's. This is
+     * the DISPLAY half only — AnalyticsController strips the same figures out
+     * of the response for non-admins, which is the half that actually
+     * enforces it. Adding a card here does not make a figure visible; the
+     * server has to send it.
      */
     kpis: [
         {
@@ -111,6 +118,7 @@ export const analysisConfig = {
         },
         {
             key: "revenue",
+            audience: "admin",
             path: ["economics", "revenue"],
             label: "Revenue",
             icon: Banknote,
@@ -120,6 +128,7 @@ export const analysisConfig = {
         },
         {
             key: "gross_profit",
+            audience: "admin",
             path: ["economics", "gross_profit"],
             label: "Gross Profit",
             icon: Wallet,
@@ -129,6 +138,7 @@ export const analysisConfig = {
         },
         {
             key: "gross_margin",
+            audience: "admin",
             path: ["economics", "gross_margin"],
             label: "Gross Margin",
             icon: Percent,
@@ -140,6 +150,7 @@ export const analysisConfig = {
         },
         {
             key: "mrr",
+            audience: "admin",
             path: ["economics", "mrr"],
             label: "MRR",
             icon: Repeat,
@@ -161,7 +172,7 @@ export const analysisConfig = {
         { key: "cpl", label: "CPL", numeric: true, format: "currency" },
         { key: "consults", label: "Consults", numeric: true, format: "number", hideBelow: "lg" },
         { key: "won", label: "Won", numeric: true, format: "number" },
-        { key: "revenue", label: "Revenue", numeric: true, format: "currency", hideBelow: "md" },
+        { key: "revenue", label: "Revenue", numeric: true, format: "currency", hideBelow: "md", audience: "admin" },
     ],
 
     creativeColumns: [
@@ -172,7 +183,7 @@ export const analysisConfig = {
         { key: "spend", label: "Spend", numeric: true, format: "currency" },
         { key: "cpl", label: "CPL", numeric: true, format: "currency" },
         { key: "won", label: "Won", numeric: true, format: "number" },
-        { key: "revenue", label: "Revenue", numeric: true, format: "currency", hideBelow: "md" },
+        { key: "revenue", label: "Revenue", numeric: true, format: "currency", hideBelow: "md", audience: "admin" },
     ],
 
     spendColumns: [
@@ -265,6 +276,20 @@ export const analysisConfig = {
         clearAllToast: "Deleted {n} spend rows",
     },
 };
+
+/**
+ * Drops the entries a given role may not see, for any list whose items carry
+ * an optional `audience`. Used for both the KPI cards and the money columns
+ * on the breakdown tables, so "who sees what" is one rule in one place rather
+ * than a role check scattered through the JSX.
+ *
+ * An entry with no `audience` is for everyone. Only "admin" narrows it — an
+ * allow-list would be better if a third audience ever appears, but inventing
+ * one for a single case would be machinery with nothing in it.
+ */
+export function forAudience(items, role) {
+    return items.filter((item) => item.audience !== "admin" || role === "admin");
+}
 
 /** Look up a range by its day count. Falls back to the default rather than
  *  returning undefined, so a stale value cannot blank the screen. */
