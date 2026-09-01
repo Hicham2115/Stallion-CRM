@@ -14,7 +14,7 @@
  *    - Change where a role lands ...... roleHome
  * ============================================================================
  */
-import { Bell, ChartColumn, CodeXml, Columns3, Eye, LayoutDashboard, PanelsTopLeft, Settings, Users, } from "lucide-react";
+import { Bell, ChartColumn, CodeXml, Coins, Columns3, Eye, LayoutDashboard, PanelsTopLeft, Settings, Users, } from "lucide-react";
 import { adminConfig } from "@/config/admin";
 import { devConfig } from "@/config/dev";
 import { loginConfig } from "@/config/login";
@@ -72,6 +72,14 @@ export const navigation = {
                     subtitle: "Message any rep on your team.",
                 },
                 */
+                {
+                    label: "Analysis",
+                    href: adminConfig.routes.analysis,
+                    icon: Coins,
+                    roles: ["admin"],
+                    title: "Analysis",
+                    subtitle: "What acquisition costs, and what it returns.",
+                },
                 {
                     label: "Reports",
                     href: adminConfig.routes.reports,
@@ -147,6 +155,23 @@ export const navigation = {
                     subtitle: "Message your manager.",
                 },
                 */
+                /* Analysis is the ONE screen a rep and their manager read
+                   identically, and the only "My"-less label in this group.
+                   That is deliberate: acquisition cost is a company figure
+                   (ad spend has no rep dimension — see KpiService's
+                   adSpendTotal), so narrowing it to one rep's leads would
+                   produce a "cost per customer" that is not one. Calling it
+                   "My Analysis" would promise exactly the scoping it does not
+                   have. Same route target, same component, both roles — see
+                   components/analysis/analysis-view.jsx. */
+                {
+                    label: "Analysis",
+                    href: repConfig.routes.analysis,
+                    icon: Coins,
+                    roles: ["sales"],
+                    title: "Analysis",
+                    subtitle: "What acquisition costs, and what it returns.",
+                },
                 {
                     label: "My Project",
                     href: portalConfig.routes.home,

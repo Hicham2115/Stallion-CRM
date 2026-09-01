@@ -20,6 +20,7 @@ export const adminConfig = {
         clients: "/admin/clients",
         pipeline: "/admin/pipeline",
         chat: "/admin/chat",
+        analysis: "/admin/analysis",
         reports: "/admin/reports",
         settings: "/admin/settings",
     },

@@ -41,7 +41,7 @@ export function NotificationsPanel({
         ) : notifications.length === 0 ? (
           <div className="flex flex-col items-center gap-2 py-8 text-ink-muted">
             <BellOff aria-hidden className="size-5" />
-            <p className="text-[0.8125rem]">You're all caught up.</p>
+            <p className="text-[0.8125rem]">You&apos;re all caught up.</p>
           </div>
         ) : (
           notifications.map((notification) => {

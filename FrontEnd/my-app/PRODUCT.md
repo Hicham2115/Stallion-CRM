@@ -31,13 +31,15 @@ which audience, is `config/roles.ts`. Read it before adding a screen.
   a preview turns on their preview card, saving a live URL turns on their
   live-site card, and posting an update lands in their feed. A developer never
   sees the pipeline, the lead source, the internal notes or the sales timeline.
-- **Sales rep (built, 2026-08-23).** Works their OWN leads day to day: dials,
-  stage moves, notes, appointments. Everything under `app/(console)/rep/`, with
-  its copy and flags in `config/rep.ts`. It is the agency console narrowed to
-  one person — the kanban, the funnel and the stage breakdown are the SAME
-  components with a `leads` prop, so a rep and their manager are always reading
-  the same instrument. A rep never sees another rep's leads, the team KPIs, the
-  leaderboard, Reports or Settings.
+- **Sales rep (built, 2026-08-23; analysis added 2026-09-01).** Works their OWN leads
+  day to day: dials, stage moves, notes, appointments. Everything under
+  `app/(console)/rep/`, with its copy and flags in `config/rep.js`. It is the
+  agency console narrowed to one person — the kanban, the funnel and the stage
+  breakdown are the SAME components with a `leads` prop, so a rep and their manager
+  are always reading the same instrument. A rep never sees another rep's leads, the
+  team KPIs, the leaderboard, Reports or Settings. A single deliberate exception is
+  `/rep/analysis` (campaign acquisition costs and return), which is per-campaign
+  rather than per-person and enables reps to know which lead sources are expensive.
 
 ## Product Purpose
 
@@ -97,8 +99,9 @@ sharing; live-site URL; client update composer.
 
 Built today (rep workspace): Dashboard (four first-person KPIs, My Leads by
 Stage, My Clients), My Clients (search, add, table + phone cards), My Pipeline
-(kanban ⇄ funnel, scoped), Team Chat (one thread with the manager), and a
-scoped lead page with notes, log-a-call and a stage control.
+(kanban ⇄ funnel, scoped), Team Chat (one thread with the manager), Analysis
+(`/rep/analysis` — campaign ROI & acquisition cost breakdown), and a scoped lead
+page with notes, log-a-call and a stage control.
 
 - **A rep's figures are derived from their LEADS, not from the `Rep`
   counters.** The rep record carries its own `conversions`, and in the seed it
