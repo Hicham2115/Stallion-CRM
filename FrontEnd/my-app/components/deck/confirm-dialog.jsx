@@ -34,7 +34,7 @@ destructive = true, }) {
             onOpenChange(next);
         }}>
       <DialogContent className="border border-hairline bg-deck-card p-6 sm:max-w-md">
-        <div className="flex gap-4">
+        <div className="flex min-w-0 gap-4">
           <span aria-hidden className={cn("grid size-10 shrink-0 place-items-center rounded-md border",
         // --status-critical token, not Tailwind's red ramp, so red means one
         // thing everywhere in the console.

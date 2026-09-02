@@ -1,5 +1,3 @@
-import { ChevronDown } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { TestimonialVideo } from "@/components/stallion/testimonial-video";
 const testimonials = [
   {
