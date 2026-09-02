@@ -62,13 +62,6 @@ export function Results() {
           </div>
         ))}
       </div>
-
-      <Button
-        variant="outline"
-        className="mt-12 h-auto rounded-full border-[#bafc0c]/50 bg-transparent px-7 py-3.5 text-sm font-semibold text-[#bafc0c] hover:bg-[#bafc0c]/10 hover:text-[#bafc0c]"
-      >
-        Show More Stories <ChevronDown size={15} />
-      </Button>
     </section>
   );
 }
