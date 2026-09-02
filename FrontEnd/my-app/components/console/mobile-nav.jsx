@@ -19,7 +19,11 @@ export function MobileNav({ role }) {
         <Menu aria-hidden className="size-[1.15rem]"/>
       </SheetTrigger>
 
-      <SheetContent side="left" className="deck-grid w-[17rem] border-hairline bg-deck-rail p-0">
+      <SheetContent
+        side="left"
+        data-surface="console"
+        className="dark deck-grid w-[17rem] border-hairline bg-deck-rail p-0"
+      >
         {/* Both are required for an accessible dialog. The description is
             visually hidden because the menu explains itself on sight. */}
         <SheetTitle className="sr-only">{brandConfig.productName} navigation</SheetTitle>
