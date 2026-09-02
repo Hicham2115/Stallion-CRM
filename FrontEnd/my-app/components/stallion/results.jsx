@@ -1,22 +1,44 @@
 import { ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { VideoPlaceholder } from "@/components/stallion/video-placeholder";
+import { TestimonialVideo } from "@/components/stallion/testimonial-video";
 const testimonials = [
   {
     name: "Yassine K.",
     result: "3x more booked calls in 60 days",
     quote:
       "We stopped losing leads overnight. Follow-up finally happens the same day.",
+    video: "/testimonials/IMG_5529.mp4",
+    poster: "/testimonials/IMG_5529.jpg",
   },
   {
     name: "Sara B.",
     result: "Doubled monthly qualified leads",
     quote: "The system caught gaps in our funnel we didn't even know existed.",
+    video: "/testimonials/IMG_5541.mp4",
+    poster: "/testimonials/IMG_5541.jpg",
   },
   {
     name: "Omar T.",
     result: "40% lower cost per lead",
     quote: "Fastest ROI of any agency we've worked with.",
+    video: "/testimonials/IMG_5580.mp4",
+    poster: "/testimonials/IMG_5580.jpg",
+  },
+  // TODO: placeholder copy — replace name/result/quote with the real client's before launch.
+  {
+    name: "Client Name",
+    result: "Add this client's result here",
+    quote: "Add this client's real quote here before launch.",
+    video: "/testimonials/IMG_5610.2.mp4",
+    poster: "/testimonials/IMG_5610.2.jpg",
+  },
+  // TODO: placeholder copy — replace name/result/quote with the real client's before launch.
+  {
+    name: "Client Name",
+    result: "Add this client's result here",
+    quote: "Add this client's real quote here before launch.",
+    video: "/testimonials/IMG_5717.mp4",
+    poster: "/testimonials/IMG_5717.jpg",
   },
 ];
 export function Results() {
@@ -30,22 +52,13 @@ export function Results() {
         Stallion.
       </p>
 
-      <div className="grid grid-cols-1 gap-6 text-left md:grid-cols-3">
+      <div className="flex flex-wrap justify-center gap-6 text-left">
         {testimonials.map((t) => (
           <div
-            key={t.name}
-            className="flex flex-col gap-4 rounded-2xl border border-[#65891c]/35 bg-[#15181d] p-4"
+            key={t.video}
+            className="w-full overflow-hidden rounded-2xl border border-[#65891c]/35 bg-[#15181d] p-4 md:w-[calc(33.333%-1rem)]"
           >
-            <VideoPlaceholder variant="testimonial" />
-            <div>
-              <p className="mb-1.5 text-sm font-bold text-[#bafc0c]">
-                {t.name}
-              </p>
-              <p className="mb-2 text-[15px] font-bold text-white">
-                {t.result}
-              </p>
-              <p className="text-sm text-[#d1d5db]">&ldquo;{t.quote}&rdquo;</p>
-            </div>
+            <TestimonialVideo src={t.video} poster={t.poster} />
           </div>
         ))}
       </div>
