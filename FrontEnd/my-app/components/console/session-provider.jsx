@@ -28,7 +28,7 @@ export function useSessionHydrated() {
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => {
     if (useSessionStore.persist?.hasHydrated()) {
-      setHydrated(true);
+      queueMicrotask(() => setHydrated(true));
       return;
     }
     const unsubscribe = useSessionStore.persist?.onFinishHydration(() =>

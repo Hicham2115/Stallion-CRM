@@ -19,6 +19,7 @@ export const repConfig = {
         clients: "/rep/clients",
         pipeline: "/rep/pipeline",
         chat: "/rep/chat",
+        analysis: "/rep/analysis",
     },
     demo: {
         repId: "rep-2",

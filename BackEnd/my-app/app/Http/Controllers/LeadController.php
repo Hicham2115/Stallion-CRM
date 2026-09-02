@@ -153,11 +153,11 @@ class LeadController extends Controller
      * mvp_started_at, closed_at, delivery_started_at, delivered_at, lost_at
      * — LeadObserver owns those).
      *
-     * Financial scope was deliberately cut back to `project_cost` alone
-     * (contract_value/recurring_mrr/payment_schedule/contract_signed_date
-     * were tried and reverted in the same session — the business wants the
-     * workflow simple for now, not full deal-financial entry). Revenue/CAC/
-     * LTV KPIs stay null until contract_value gets a real write path later.
+     * Financial scope: `project_cost` and `contract_value`. The rest
+     * (recurring_mrr/payment_schedule/contract_signed_date) stays cut —
+     * tried and reverted in an earlier session, business wants the workflow
+     * simple. `contract_value` was re-added on request so Revenue/CAC/LTV
+     * KPIs (Analysis screen) have a real write path instead of staying null.
      *
      * `sometimes` on every rule + Eloquent's fill() means an omitted field
      * is left untouched, not cleared — a partial PATCH only ever changes
@@ -182,6 +182,7 @@ class LeadController extends Controller
             'closing_meeting_attended' => ['sometimes', 'nullable', 'boolean'],
             'deposit_collected' => ['sometimes', 'nullable', 'boolean'],
             'project_cost' => ['sometimes', 'nullable', 'numeric', 'min:0'],
+            'contract_value' => ['sometimes', 'nullable', 'numeric', 'min:0'],
         ]);
 
         $lead->fill($data);

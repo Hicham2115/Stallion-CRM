@@ -6,18 +6,31 @@ import { cn } from "@/lib/utils";
 // Every card has the same four parts (label, icon, numeral, a filled foot)
 // so the row reads as one instrument rather than four unrelated boxes.
 // Which foot a card gets is declared in config/admin.ts (`foot`).
-export function KpiCard({ definition, value, captionValue, sparkline, delta, revealDelay = 0, }) {
+export function KpiCard({ definition, value, captionValue, sparkline, delta, revealDelay = 0,
+/** What a screen reader hears in place of the em dash when `value` is null. */
+emptyHint = "Not enough data yet", }) {
     const Icon = definition.icon;
-    const animated = useCountUp(value);
+    // A null figure is NOT a zero. The analytics API returns null, never 0,
+    // for any ratio whose denominator is unknown — no ad spend imported, no
+    // won deals, no configured retention — and "0 MAD" would read as "this
+    // costs nothing" rather than "we cannot tell yet". Every screen in this
+    // app already draws that distinction; the card has to as well.
+    const missing = value === null || value === undefined;
+    const animated = useCountUp(missing ? 0 : value);
     const display = definition.format === "percent"
         ? formatPercent(animated)
         : definition.format === "currency"
             ? formatCompactCurrency(animated)
-            : formatNumber(Math.round(animated));
+            // A ratio (LTV:CAC) is neither money nor a percentage, and its
+            // first decimal is the whole point — rounding 3.4 to "3" hides
+            // the difference between a healthy and a marginal one.
+            : definition.format === "ratio"
+                ? `${animated.toFixed(1)}×`
+                : formatNumber(Math.round(animated));
     // Exact figure sits behind a hover on the compact currency display.
-    const exact = definition.format === "currency" ? formatCurrency(Math.round(value)) : undefined;
+    const exact = !missing && definition.format === "currency" ? formatCurrency(Math.round(value)) : undefined;
     // Clamped so a KPI beating its target fills the bar, not overflows it.
-    const progress = definition.target && definition.target > 0
+    const progress = !missing && definition.target && definition.target > 0
         ? Math.min((value / definition.target) * 100, 100)
         : 0;
     return (<div className="reveal deck-inset relative flex flex-col overflow-hidden rounded-md border border-hairline bg-deck-surface p-5" style={{ "--reveal-delay": `${revealDelay}ms` }}>
@@ -42,8 +55,18 @@ export function KpiCard({ definition, value, captionValue, sparkline, delta, rev
         </span>
       </div>
 
-      <p title={exact} className={cn("deck-nums mt-4 font-display text-[2.5rem] font-semibold leading-none tracking-[-0.04em] text-ink", exact && "cursor-help")}>
-        {display}
+      <p title={exact} className={cn("deck-nums mt-4 font-display text-[2.5rem] font-semibold leading-none tracking-[-0.04em]", exact && "cursor-help",
+        // Muted, not faint: the dash IS the card's value, and --ink-faint is
+        // decoration-only (~2.1:1). It recedes by colour step, not below the
+        // readable floor.
+        missing ? "text-ink-muted" : "text-ink")}>
+        {missing ? (
+          // The em dash is decoration; the sentence beside it is what a
+          // screen reader gets, since "—" on its own announces as nothing.
+          <>
+            <span aria-hidden>—</span>
+            <span className="sr-only">{emptyHint}</span>
+          </>) : (display)}
       </p>
 
       <div className="mt-auto pt-4">
