@@ -57,21 +57,21 @@ export function EntryGateDialog() {
         showCloseButton={false}
         className="w-full border border-white/10 bg-[#15181d] p-5 text-white sm:max-w-sm sm:p-6"
       >
-        <button
+        {/* <button
           type="button"
           onClick={() => setOpen(false)}
           aria-label="Close"
           className="absolute right-4 top-4 text-white/40 hover:text-white/80"
         >
           <X className="size-4" />
-        </button>
+        </button> */}
 
         <DialogHeader className="mb-1">
           <DialogTitle className="font-heading text-xl text-white">
-            Welcome
+            Welcome to Stallion!
           </DialogTitle>
           <DialogDescription className="text-white/50">
-            Tell us who you are before you continue.
+            Fill The Fields To Watch The Video
           </DialogDescription>
         </DialogHeader>
 
@@ -114,7 +114,7 @@ export function EntryGateDialog() {
               </>
             ) : (
               <>
-                Continue <ArrowRight className="size-4" />
+                Watch Video <ArrowRight className="size-4" />
               </>
             )}
           </Button>
