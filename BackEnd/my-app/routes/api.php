@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AdSpendController;
 use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DialLogController;
@@ -74,6 +75,17 @@ Route::get('/portal/lead', [PortalController::class, 'show'])->middleware(['auth
 // whether `economics` (revenue/CAC/LTV) should be admin-only.
 Route::get('/analytics/kpis', [AnalyticsController::class, 'kpis'])->middleware(['auth:sanctum', 'role:admin,sales']);
 Route::get('/analytics/leaderboard', [AnalyticsController::class, 'leaderboard'])->middleware(['auth:sanctum', 'role:admin,sales']);
+
+// Analysis > Ad Spend — the CSV import that feeds every cost figure in
+// KpiService (CAC, CPL, campaign/creative spend). Same admin,sales gate as
+// /analytics/kpis above, because the Analysis screen that renders those
+// figures and the panel that uploads the data behind them are one surface,
+// reachable by both roles.
+Route::get('/ad-spend', [AdSpendController::class, 'index'])->middleware(['auth:sanctum', 'role:admin,sales']);
+Route::post('/ad-spend/import', [AdSpendController::class, 'store'])->middleware(['auth:sanctum', 'role:admin,sales']);
+// Declared before /{adSpend} so "all" is never read as a row id.
+Route::delete('/ad-spend/all', [AdSpendController::class, 'destroyAll'])->middleware(['auth:sanctum', 'role:admin,sales']);
+Route::delete('/ad-spend/{adSpend}', [AdSpendController::class, 'destroy'])->middleware(['auth:sanctum', 'role:admin,sales']);
 
 // Settings > Sales Reps — real accounts, admin-only (see UserController).
 Route::get('/users', [UserController::class, 'index'])->middleware(['auth:sanctum', 'role:admin']);

@@ -48,6 +48,73 @@ class AnalyticsKpiTest extends TestCase
         ]);
     }
 
+    /**
+     * A sales rep may see acquisition COST, never company earnings. The
+     * figures are removed from the payload, not nulled — null already means
+     * "denominator unknown" everywhere in this API, so a redacted revenue
+     * sent as null would read as "the agency earned nothing".
+     */
+    public function test_sales_never_receives_company_financials(): void
+    {
+        $rep = User::factory()->create(['role' => 'sales']);
+        Lead::factory()->create([
+            'stage' => 'won',
+            'closed_at' => now(),
+            'contract_value' => 50000,
+            'recurring_mrr' => 1200,
+            'assigned_sales_id' => $rep->id,
+        ]);
+        AdSpend::create(['date' => now()->toDateString(), 'campaign' => 'spring-launch', 'spend' => 2000]);
+
+        $this->actingAs($rep, 'sanctum');
+        $data = $this->getJson('/api/analytics/kpis')->assertOk()->json();
+
+        foreach (['revenue', 'project_cost', 'gross_profit', 'gross_margin', 'mrr', 'mvp_cost_total'] as $field) {
+            $this->assertArrayNotHasKey($field, $data['economics'], "economics.$field leaked to a sales rep");
+        }
+
+        // Per-person ranking, listed under sales.neverReads in config/roles.js.
+        $this->assertArrayNotHasKey('sales', $data);
+        $this->assertArrayNotHasKey('developers', $data);
+
+        // What a rep IS meant to have: what a customer costs.
+        // Delta, not assertSame: json_encode(2000.0) emits `2000`, which
+        // decodes back as an int — same convention as every other money
+        // assertion in this file.
+        $this->assertEqualsWithDelta(2000.0, $data['economics']['cac'], 0.0001);
+        $this->assertEqualsWithDelta(2000.0, $data['acquisition']['cpl'], 0.0001);
+        $this->assertArrayHasKey('ltv_cac', $data['economics']);
+    }
+
+    public function test_campaign_rows_drop_revenue_for_sales_but_keep_cost(): void
+    {
+        $rep = User::factory()->create(['role' => 'sales']);
+        $lead = Lead::factory()->create(['stage' => 'won', 'closed_at' => now(), 'contract_value' => 50000]);
+        LeadAttribution::create(['lead_id' => $lead->id, 'utm_campaign' => 'spring-launch']);
+        AdSpend::create(['date' => now()->toDateString(), 'campaign' => 'spring-launch', 'spend' => 400]);
+
+        $this->actingAs($rep, 'sanctum');
+        $row = $this->getJson('/api/analytics/kpis')->assertOk()->json('campaigns.0');
+
+        $this->assertArrayNotHasKey('revenue', $row);
+        $this->assertEqualsWithDelta(400.0, $row['spend'], 0.0001);
+        $this->assertEqualsWithDelta(400.0, $row['cpl'], 0.0001);
+        $this->assertSame(1, $row['won']);
+    }
+
+    /** The redaction must not touch what an admin gets. */
+    public function test_admin_still_receives_every_financial_figure(): void
+    {
+        $this->actingAsRole('admin');
+
+        $data = $this->getJson('/api/analytics/kpis')->assertOk()->json();
+
+        $this->assertArrayHasKey('revenue', $data['economics']);
+        $this->assertArrayHasKey('gross_margin', $data['economics']);
+        $this->assertArrayHasKey('sales', $data);
+        $this->assertArrayHasKey('developers', $data);
+    }
+
     public function test_zero_denominator_returns_null_not_zero_or_fake_number(): void
     {
         $this->actingAsRole('admin');

@@ -31,6 +31,15 @@ export const roleDefinitions = {
         // learn a colleague's figures over lunch. It is a SCOPE: their screens are
         // built around one pipeline, and a rep reading the whole database is
         // looking at a manager's screen. Commission disputes start there.
+        // ONE DELIBERATE EXCEPTION, added with /rep/analysis (2026-09-01):
+        // acquisition cost and campaign return. Everything else in this list
+        // is per-PERSON data a rep could use to compare themselves against a
+        // colleague; Analysis is per-CAMPAIGN and has no rep dimension at all
+        // (ad spend is not attributed to a rep — see KpiService's
+        // adSpendTotal), so it cannot answer "how am I doing against Sara".
+        // It is the numbers a rep needs to know which leads are expensive.
+        // User decision, 2026-09-01. The team KPIs, the leaderboard, Reports
+        // and Settings all stay closed.
         neverReads: [
             "other reps' leads",
             "team-wide KPIs",
