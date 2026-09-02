@@ -234,10 +234,11 @@ class AdSpendController extends Controller
                 continue;
             }
 
-            $platform = $this->cell($record, $map, 'platform') ?: self::DEFAULT_PLATFORM;
-            $campaign = $this->cell($record, $map, 'campaign') ?: null;
-            $adSet = $this->cell($record, $map, 'ad_set') ?: null;
-            $creative = $this->cell($record, $map, 'creative') ?: null;
+            $platform = $this->cell($record, $map, 'platform');
+            $platform = $platform !== '' ? $platform : self::DEFAULT_PLATFORM;
+            $campaign = $this->nullIfEmpty($this->cell($record, $map, 'campaign'));
+            $adSet = $this->nullIfEmpty($this->cell($record, $map, 'ad_set'));
+            $creative = $this->nullIfEmpty($this->cell($record, $map, 'creative'));
 
             $key = sha1(implode("\0", [$date, $platform, $campaign ?? '', $adSet ?? '', $creative ?? '']));
 
@@ -359,6 +360,12 @@ class AdSpendController extends Controller
         return trim((string) ($record[$map[$column]] ?? ''));
     }
 
+    /** '' => null, everything else (including the literal string "0") kept as-is. */
+    private function nullIfEmpty(string $value): ?string
+    {
+        return $value !== '' ? $value : null;
+    }
+
     /**
      * A Y-m-d date string, or null if the value is not a date.
      *
@@ -402,9 +409,10 @@ class AdSpendController extends Controller
      * Separators are resolved by POSITION, not by locale: whichever of "." or
      * "," appears last is the decimal point and the other groups thousands,
      * so "1.234,56" and "1,234.56" both read as 1234.56. A lone "," followed
-     * by exactly two digits is a decimal comma ("1,50"); otherwise it groups
-     * ("1,500"). A lone "." stays a decimal point, which is what an
-     * English-language Ads Manager export writes.
+     * by one or two digits is a decimal comma ("1,5" or "1,50" — thousands
+     * grouping always uses exactly three); otherwise it groups ("1,500"). A
+     * lone "." stays a decimal point, which is what an English-language Ads
+     * Manager export writes.
      */
     private function parseAmount(string $value): ?float
     {
@@ -425,7 +433,7 @@ class AdSpendController extends Controller
             $cleaned = str_replace($decimal, '.', $cleaned);
         } elseif ($lastComma !== false) {
             $isDecimalComma = substr_count($cleaned, ',') === 1
-                && preg_match('/,\d{2}$/', $cleaned) === 1;
+                && preg_match('/,\d{1,2}$/', $cleaned) === 1;
             $cleaned = $isDecimalComma
                 ? str_replace(',', '.', $cleaned)
                 : str_replace(',', '', $cleaned);

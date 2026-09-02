@@ -188,6 +188,7 @@ function emptyWorkflowState(lead) {
     closing_meeting_attended: lead?.closing_meeting_attended ?? null,
     deposit_collected: lead?.deposit_collected ?? null,
     project_cost: lead?.project_cost ?? "",
+    contract_value: lead?.contract_value ?? "",
     developer_id: lead?.developers?.[0]?.id ?? null,
   };
 }
@@ -276,6 +277,7 @@ function LeadDetailsContent({ lead }) {
           closing_meeting_attended: values.closing_meeting_attended,
           deposit_collected: values.deposit_collected,
           project_cost: values.project_cost === "" ? null : Number(values.project_cost),
+          contract_value: values.contract_value === "" ? null : Number(values.contract_value),
         }),
         // Only sent when the picker actually changed something worth
         // writing — an admin who never touched it shouldn't fire a
@@ -666,13 +668,24 @@ function LeadDetailsContent({ lead }) {
                       className={cn(fieldBase, "h-10 px-3 text-[0.8125rem]")}
                     />
                   </EditRow>
+                  <EditRow label={`Contract value (${adminConfig.currency})`}>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={form.contract_value}
+                      onChange={(e) => set("contract_value", e.target.value)}
+                      className={cn(fieldBase, "h-10 px-3 text-[0.8125rem]")}
+                    />
+                  </EditRow>
                 </div>
               </Section>
             ) : (
               (lead.closing_meeting_scheduled_for ||
                 lead.closing_meeting_attended !== null ||
                 lead.deposit_collected !== null ||
-                lead.project_cost) && (
+                lead.project_cost ||
+                lead.contract_value) && (
                 <Section title="Closing">
                   <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
                     <Field
@@ -690,6 +703,10 @@ function LeadDetailsContent({ lead }) {
                     <Field
                       label="Project cost"
                       value={lead.project_cost ? formatCurrency(Number(lead.project_cost)) : null}
+                    />
+                    <Field
+                      label="Contract value"
+                      value={lead.contract_value ? formatCurrency(Number(lead.contract_value)) : null}
                     />
                   </div>
                 </Section>

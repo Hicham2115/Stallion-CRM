@@ -35,6 +35,10 @@ class AnalyticsController extends Controller
      *  ADMIN_ONLY_ECONOMICS, applied to each row. */
     private const ADMIN_ONLY_BREAKDOWN_FIELDS = ['revenue'];
 
+    /** `timing` carries revenue/profit broken down by type — same rule as
+     *  ADMIN_ONLY_ECONOMICS, just nested under a different top-level key. */
+    private const ADMIN_ONLY_TIMING_FIELDS = ['mvp_types_by_revenue', 'profit_by_product_type'];
+
     public function kpis(Request $request, KpiService $kpis)
     {
         $filters = $request->validate([
@@ -84,6 +88,7 @@ class AnalyticsController extends Controller
         }
 
         $payload['economics'] = Arr::except($payload['economics'], self::ADMIN_ONLY_ECONOMICS);
+        $payload['timing'] = Arr::except($payload['timing'], self::ADMIN_ONLY_TIMING_FIELDS);
 
         foreach (['campaigns', 'creatives'] as $breakdown) {
             $payload[$breakdown] = array_map(
