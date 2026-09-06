@@ -190,6 +190,14 @@ export function liveKpisOf(leads) {
     0,
   );
 
+  // Gross profit — contract value minus project cost, per won deal. A
+  // missing project_cost reads as 0 (not yet entered), mirroring
+  // KpiService::timing()'s profit_by_product_type COALESCE convention.
+  const totalProfit = wonLeads.reduce(
+    (sum, lead) => sum + ((Number(lead.contract_value) || 0) - (Number(lead.project_cost) || 0)),
+    0,
+  );
+
   return {
     totalLeads,
     totalClients: won,
@@ -206,5 +214,6 @@ export function liveKpisOf(leads) {
     closingShowRate: closingsScheduled === 0 ? null : (closingsAttended / closingsScheduled) * 100,
     depositCollectionRate: won === 0 ? null : (depositsCollected / won) * 100,
     totalContractValue,
+    totalProfit,
   };
 }

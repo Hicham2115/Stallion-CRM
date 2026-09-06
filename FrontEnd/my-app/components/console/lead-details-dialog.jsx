@@ -678,6 +678,14 @@ function LeadDetailsContent({ lead }) {
                       className={cn(fieldBase, "h-10 px-3 text-[0.8125rem]")}
                     />
                   </EditRow>
+                  {form.contract_value !== "" && (
+                    <Field
+                      label="Profit"
+                      value={formatCurrency(
+                        Number(form.contract_value) - (form.project_cost === "" ? 0 : Number(form.project_cost)),
+                      )}
+                    />
+                  )}
                 </div>
               </Section>
             ) : (
@@ -708,6 +716,14 @@ function LeadDetailsContent({ lead }) {
                       label="Contract value"
                       value={lead.contract_value ? formatCurrency(Number(lead.contract_value)) : null}
                     />
+                    {lead.contract_value && (
+                      <Field
+                        label="Profit"
+                        value={formatCurrency(
+                          Number(lead.contract_value) - Number(lead.project_cost ?? 0),
+                        )}
+                      />
+                    )}
                   </div>
                 </Section>
               )

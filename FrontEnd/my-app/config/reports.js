@@ -13,7 +13,7 @@
  *    - Rename an export file ......... content.csvFilePrefix
  * ============================================================================
  */
-import { CircleDollarSign, HandCoins, Handshake, PackageCheck, TrendingUp, UserCheck, UserCheck2, Users } from "lucide-react";
+import { CircleDollarSign, HandCoins, Handshake, PackageCheck, PiggyBank, TrendingUp, UserCheck, UserCheck2, Users } from "lucide-react";
 export const reportsConfig = {
     features: {
         exports: true,
@@ -108,6 +108,14 @@ export const reportsConfig = {
             format: "currency",
             foot: "caption",
             caption: "total booked revenue in range",
+        },
+        {
+            key: "totalProfit",
+            label: "Total Profit",
+            icon: PiggyBank,
+            format: "currency",
+            foot: "caption",
+            caption: "contract value minus project cost",
         },
     ],
     content: {
