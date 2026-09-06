@@ -146,7 +146,8 @@ export function daysInStage(lead) {
  */
 export function liveKpisOf(leads) {
   const totalLeads = leads.length;
-  const won = leads.filter((lead) => WON_STAGE_IDS.includes(lead.stage)).length;
+  const wonLeads = leads.filter((lead) => WON_STAGE_IDS.includes(lead.stage));
+  const won = wonLeads.length;
 
   const consultsScheduled = leads.filter((lead) => lead.consult_scheduled_for).length;
   const consultsAttended = leads.filter(
@@ -155,6 +156,39 @@ export function liveKpisOf(leads) {
 
   const consultsCompleted = leads.filter((lead) => lead.consult_completed_at).length;
   const agreedMvp = leads.filter((lead) => lead.consult_outcome === "agreed_mvp").length;
+
+  // Of second meetings with a RECORDED outcome (good or not) — one that
+  // hasn't happened yet (outcome still null) isn't counted on either side,
+  // mirrors KpiService::middleFunnel()'s second_meeting_good_outcome_rate.
+  const secondMeetingsWithOutcome = leads.filter(
+    (lead) => lead.needs_second_meeting && lead.second_meeting_outcome_good !== null && lead.second_meeting_outcome_good !== undefined,
+  ).length;
+  const secondMeetingsGood = leads.filter(
+    (lead) => lead.needs_second_meeting && lead.second_meeting_outcome_good === true,
+  ).length;
+
+  // Both a delivery date AND a deadline must be present to count either
+  // way — a missing one is excluded, never silently treated as on-time.
+  // Mirrors KpiService::middleFunnel()'s mvp_on_time_rate.
+  const mvpsBuilt = leads.filter((lead) => lead.mvp_delivered_at && lead.mvp_deadline).length;
+  const mvpsOnTime = leads.filter(
+    (lead) =>
+      lead.mvp_delivered_at &&
+      lead.mvp_deadline &&
+      new Date(lead.mvp_delivered_at) <= new Date(lead.mvp_deadline),
+  ).length;
+
+  const closingsScheduled = leads.filter((lead) => lead.closing_meeting_scheduled_for).length;
+  const closingsAttended = leads.filter(
+    (lead) => lead.closing_meeting_scheduled_for && lead.closing_meeting_attended === true,
+  ).length;
+
+  const depositsCollected = wonLeads.filter((lead) => lead.deposit_collected === true).length;
+
+  const totalContractValue = wonLeads.reduce(
+    (sum, lead) => sum + (Number(lead.contract_value) || 0),
+    0,
+  );
 
   return {
     totalLeads,
@@ -166,5 +200,11 @@ export function liveKpisOf(leads) {
     needsSecondMeeting: leads.filter(
       (lead) => lead.needs_second_meeting && !lead.second_meeting_scheduled_for,
     ).length,
+    secondMeetingGoodRate:
+      secondMeetingsWithOutcome === 0 ? null : (secondMeetingsGood / secondMeetingsWithOutcome) * 100,
+    mvpOnTimeRate: mvpsBuilt === 0 ? null : (mvpsOnTime / mvpsBuilt) * 100,
+    closingShowRate: closingsScheduled === 0 ? null : (closingsAttended / closingsScheduled) * 100,
+    depositCollectionRate: won === 0 ? null : (depositsCollected / won) * 100,
+    totalContractValue,
   };
 }
