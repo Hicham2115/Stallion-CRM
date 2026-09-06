@@ -13,7 +13,7 @@
  *    - Translate a screen ............. swap the `content` objects
  * ============================================================================
  */
-import { CalendarClock, CircleDollarSign, HandCoins, PackageCheck, PhoneCall, TrendingUp, UserCheck2, Users, } from "lucide-react";
+import { CalendarClock, CircleDollarSign, HandCoins, PackageCheck, PhoneCall, PiggyBank, TrendingUp, UserCheck2, Users, } from "lucide-react";
 export const adminConfig = {
     routes: {
         home: "/admin",
@@ -106,6 +106,14 @@ export const adminConfig = {
                 format: "currency",
                 foot: "caption",
                 caption: "total booked revenue",
+            },
+            {
+                key: "totalProfit",
+                label: "Total Profit",
+                icon: PiggyBank,
+                format: "currency",
+                foot: "caption",
+                caption: "contract value minus project cost",
             },
         ],
         content: {
