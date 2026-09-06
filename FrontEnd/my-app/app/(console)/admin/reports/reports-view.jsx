@@ -18,7 +18,15 @@ import { formatDelta, formatDeltaPoints, template } from "@/lib/format";
 import { getErrorMessage } from "@/lib/get-error-message";
 const { content, features, kpis } = reportsConfig;
 /** Which KPIs are percentages, and so move in POINTS rather than percent. */
-const POINT_KPIS = new Set(["conversionRate", "attendingRate", "consultToMvpRate"]);
+const POINT_KPIS = new Set([
+  "conversionRate",
+  "attendingRate",
+  "consultToMvpRate",
+  "secondMeetingGoodRate",
+  "mvpOnTimeRate",
+  "closingShowRate",
+  "depositCollectionRate",
+]);
 
 function daysAgo(iso) {
   if (!iso) return null;
@@ -93,6 +101,9 @@ export function ReportsView() {
     if (view.previous.length === 0) return undefined;
     const now = valueOf(key, "current");
     const before = valueOf(key, "prior");
+    // A null figure means "not enough data", not zero (e.g. no MVPs
+    // delivered yet in one of the two periods) — no chip beats a fake delta.
+    if (now === null || before === null) return undefined;
     const isPoints = POINT_KPIS.has(key);
     const change = isPoints ? now - before : before === 0 ? 0 : ((now - before) / before) * 100;
     if (!Number.isFinite(change)) return undefined;
